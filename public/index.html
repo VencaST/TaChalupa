@@ -216,6 +216,18 @@ table.items td .d2{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
 .watch-tag.w1{background:rgba(45,212,200,.14);color:var(--accent-bright)}
 .tab-badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:9px;background:#F87171;color:#fff;font-size:11px;font-weight:800;line-height:1.3}
 .watch-banner{background:#3b1a1a;border:1px solid #7f2d2d;color:#ffd0d0;border-radius:12px;padding:10px 12px;font-size:13px;margin:8px 0 0;cursor:pointer;line-height:1.4}
+.kind{font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:3px 7px;border-radius:6px;flex:0 0 auto}
+.kind.booking{background:rgba(96,165,250,.16);color:#60A5FA}
+.kind.priamo{background:rgba(45,212,200,.14);color:var(--accent-bright)}
+.kind.fu{background:rgba(251,191,36,.16);color:#FBBF24}
+.kind.vraceni{background:rgba(148,163,184,.18);color:#94A3B8}
+.statcard .v.fu{color:#FBBF24}.statcard .v.bk{color:#60A5FA}
+.hist-amt.neg{color:#FBBF24}
+.pay-badge.refunded{background:rgba(148,163,184,.18);color:#94A3B8;cursor:default}
+.inc-year{font-size:12px;color:var(--txt-muted);margin-top:12px;line-height:1.75}
+.inc-year b{color:var(--txt)}
+.linkbtn{background:none;border:none;color:var(--accent-bright);text-decoration:underline;font:inherit;cursor:pointer;padding:0}
+#invWarn{color:#FBBF24;line-height:1.5}
 .cloud-note{font-size:11px;color:var(--txt-muted);text-align:center;margin-top:10px;line-height:1.5}
 </style>
 </head>
@@ -403,6 +415,7 @@ table.items td .d2{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
           <input id="splat" type="number" inputmode="numeric" value="7">
         </div>
       </div>
+      <div class="hint hidden" id="invWarn" style="margin:-4px 0 10px"></div>
     </div>
   </div>
 
@@ -443,6 +456,17 @@ table.items td .d2{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
       </div>
     </div>
     <div class="card">
+      <h2>Příjmy: přímo × Booking</h2>
+      <div class="statgrid">
+        <div class="statcard"><div class="k">Přímo</div><div class="v" id="incDirect">0 Kč</div></div>
+        <div class="statcard"><div class="k">Booking.com</div><div class="v bk" id="incBooking">0 Kč</div></div>
+        <div class="statcard"><div class="k">Příjmy celkem</div><div class="v" id="incTotal">0 Kč</div></div>
+        <div class="statcard"><div class="k">Zaplaceno FÚ</div><div class="v fu" id="incFu">0 Kč</div></div>
+      </div>
+      <div class="inc-year" id="incYear"></div>
+      <div class="hint" id="incHint" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
       <h2>Hlídání plateb</h2>
       <div class="hint" style="margin:-4px 0 8px">Nezaplacené faktury po splatnosti, hosté, kteří přijíždějí do týdne bez zaplacení, a splatnosti do 3 dnů. Až platba dorazí, klepni na „Nezaplaceno“.</div>
       <div id="watchList"></div>
@@ -460,6 +484,15 @@ table.items td .d2{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
         <button class="btn cal" id="btnRestore" type="button">⬆ Obnovit ze zálohy</button>
       </div>
       <input type="file" id="restoreFile" accept="application/json,.json" class="hidden">
+    </div>
+    <div class="card">
+      <h2>Platby z banky</h2>
+      <div id="platbyList"><div class="hist-empty">Zatím žádné platby. Nahraj výpis z banky.</div></div>
+      <div class="calrow">
+        <button class="btn cal" id="btnVypis" type="button">🏦 Nahrát výpis z banky</button>
+      </div>
+      <input type="file" id="vypisFile" accept=".md,.csv,.txt,text/*" class="hidden">
+      <div class="hint" style="margin-top:8px">Výpis s řádky Účet;Datum;Typ;Protiúčet;Protistrana;Částka;Poznámka (CSV nebo Markdown). Platby se roztřídí na Booking / přímé / FÚ a spárují s fakturami podle variabilního symbolu a částky. Opakovaný import nic nezdvojí.</div>
     </div>
   </div>
 
@@ -3046,6 +3079,7 @@ function render(){
 
   if(showQR) drawQR(payable);
   if(typeof refreshCalRow==='function') refreshCalRow();
+  if(typeof updateInvWarn==='function') updateInvWarn();
 }
 function esc(s){return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
 
@@ -3086,9 +3120,13 @@ $('rate').addEventListener('input',()=>{userEditedRate=true;render();});
 $('descMain').addEventListener('input',()=>{userEditedDesc=true;render();});
 $('depAmt').addEventListener('input',()=>{userEditedDep=true;render();});
 $('invno').addEventListener('input',render);
-$('invPlus').onclick=()=>{ const m=($('invno').value||'').match(/(\d+)(\D*)$/);
-  if(m){ const num=String(+m[1]+1).padStart(m[1].length,'0'); $('invno').value=$('invno').value.replace(/(\d+)(\D*)$/,num+m[2]); }
-  saveState(); render(); };
+$('invPlus').onclick=()=>{
+  const bump=str=>{ const m=str.match(/(\d+)(\D*)$/); if(!m) return str; const num=String(+m[1]+1).padStart(m[1].length,'0'); return str.replace(/(\d+)(\D*)$/,num+m[2]); };
+  let v=bump(($('invno').value||'').trim());
+  if(!v) v=nextInvoiceNo();
+  for(let i=0;i<500 && usedInvoice(v);i++) v=bump(v);          // přeskočí čísla, která už v historii jsou
+  lastSavedNo=null; setInvoiceNo(v);
+};
 
 /* ---------- Perzistence ---------- */
 const LS={inv:'tch_invno',splat:'tch_splat',ibx:'tch_ibx'};
@@ -3148,6 +3186,7 @@ const DEMO=false; /* v náhledu v chatu se přepíná na true – data pak jen v
 const API='/api/zaznamy';
 const LS_PIN='tch_pin';
 let cloudRecords=[];
+let cloudPlatby=[];
 let serverState='idle';   // idle | ok | nopin | error
 let pinMem='';
 
@@ -3185,7 +3224,7 @@ async function apiFetch(method,path,body,opts={}){
     }
     let res;
     try{
-      res=await fetch(API+path,{method,cache:'no-store',
+      res=await fetch((path.startsWith('/api/')?path:API+path),{method,cache:'no-store',
         headers:{'content-type':'application/json','x-pin':pin},
         body: body!==undefined ? JSON.stringify(body) : undefined});
     }catch(e){ throw apiError('NET','Server není dostupný (jsi online?).'); }
@@ -3208,7 +3247,9 @@ async function refreshRecords(interactive){
   try{
     const data=await apiFetch('GET','',undefined,{silent:!interactive});
     cloudRecords=Array.isArray(data.records)?data.records:[];
+    try{ const pd=await apiFetch('GET','/api/platby',undefined,{silent:true}); cloudPlatby=Array.isArray(pd.platby)?pd.platby:[]; }catch(e){ cloudPlatby=[]; }
     serverState='ok'; setCloudNote('');
+    if(!invnoChecked){ invnoChecked=true; checkInvoiceNo(true); } else updateInvWarn();
   }catch(e){
     if(e.code==='NOPIN'){ serverState='nopin'; setCloudNote('Historie je uložená na serveru. Zadej heslo a načte se.',true); }
     else{ serverState='error'; setCloudNote(e.message); }
@@ -3225,7 +3266,7 @@ async function deleteRecordCloud(id){
   cloudRecords=cloudRecords.filter(r=>r.id!==id); renderPrehled();
 }
 async function togglePaid(id,paid){
-  const data=await apiFetch('PATCH','/'+id,{paid});
+  const data=await apiFetch('PATCH','/'+id,paid?{paid:true,paidAt:todayLocal()}:{paid:false});
   cloudRecords=cloudRecords.map(r=>r.id===id?data.record:r); renderPrehled();
 }
 
@@ -3272,7 +3313,29 @@ function demoLoad(){
   return demoMem||(demoMem=demoSeed());
 }
 function demoSave(){ try{ localStorage.setItem(DEMO_KEY,JSON.stringify(demoMem)); }catch(e){} }
+const DEMO_PLATBY_SEED=[];
+let demoPlatbyMem=null;
+function demoPlatby(){
+  if(demoPlatbyMem) return demoPlatbyMem;
+  try{ const t=localStorage.getItem(DEMO_KEY+'_platby'); if(t) demoPlatbyMem=JSON.parse(t); }catch(e){}
+  return demoPlatbyMem||(demoPlatbyMem=DEMO_PLATBY_SEED);
+}
+function demoPlatbySave(){ try{ localStorage.setItem(DEMO_KEY+'_platby',JSON.stringify(demoPlatbyMem)); }catch(e){} }
+async function demoPlatbyApi(method,path,body){
+  const pl=demoPlatby();
+  if(method==='GET') return {platby:[...pl].sort((a,b)=>String(b.date).localeCompare(String(a.date)))};
+  if(method==='POST' && path==='/api/platby/import'){
+    if(typeof DEMO_BANKA==='undefined') throw new Error('Import výpisu se v tomto náhledu nedá vyzkoušet – funguje v ostré appce.');
+    const faktury=demoLoad(); let r;
+    r=DEMO_BANKA.importVypis(String(body&&body.text||''),pl,faktury);
+    for(const pa of r.patches){ const i=faktury.findIndex(x=>x.id===pa.id); if(i>=0) faktury[i]={...faktury[i],paid:pa.paid,paidAt:pa.paidAt,paidAmount:pa.paidAmount,refunded:pa.refunded}; }
+    demoMem=faktury; demoSave(); demoPlatbyMem=r.platby; demoPlatbySave(); return {summary:r.summary};
+  }
+  if(method==='DELETE'){ const id=path.split('/').pop(); const i=pl.findIndex(x=>x.id===id); if(i>=0) pl.splice(i,1); demoPlatbySave(); return {ok:true}; }
+  throw new Error('Nepodporovaná operace.');
+}
 async function demoApi(method,path,body){
+  if(path.startsWith('/api/platby')) return demoPlatbyApi(method,path,body);
   const list=demoLoad();
   if(method==='GET') return {records:[...list].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))};
   if(method==='POST' && path===''){
@@ -3286,7 +3349,7 @@ async function demoApi(method,path,body){
   }
   const id=path.slice(1), i=list.findIndex(r=>r.id===id);
   if(i<0) throw new Error('Záznam neexistuje.');
-  if(method==='PATCH'){ list[i]={...list[i],paid:!!(body&&body.paid)}; demoSave(); return {record:list[i]}; }
+  if(method==='PATCH'){ const pd=!!(body&&body.paid), o=list[i]; list[i]={...o,paid:pd,paidAmount:pd?Math.max(o.paidAmount||0,o.payable||0):0,paidAt:pd?((body&&body.paidAt)||o.paidAt||null):null,refunded:pd?(o.refunded||0):0}; demoSave(); return {record:list[i]}; }
   if(method==='DELETE'){ list.splice(i,1); demoSave(); return {ok:true}; }
   throw new Error('Nepodporovaná operace.');
 }
@@ -3329,10 +3392,16 @@ function showToast(){ $('toast').classList.add('show'); clearTimeout(toastTimer)
 function hideToast(){ $('toast').classList.remove('show'); clearTimeout(toastTimer); }
 
 async function doSave(){
+  const rec=currentRecord();
+  if(rec.type==='faktura'){
+    const dup=usedInvoice(rec.invoiceNo);
+    if(dup && !confirm(`Číslo faktury ${rec.invoiceNo} už je v historii (${dup.customer||'—'}).\nUložit i tak?`)) return;
+  }
   const btn=$('btnSave'); const old=btn.textContent; btn.disabled=true; btn.textContent='Ukládám…';
   try{
-    await saveRecordToCloud(currentRecord());
-    dirty=false; updateSaveBtnUI(); hideToast();
+    await saveRecordToCloud(rec);
+    if(rec.type==='faktura') lastSavedNo=rec.invoiceNo;
+    dirty=false; updateSaveBtnUI(); hideToast(); updateInvWarn();
   }catch(e){
     alert('Nepodařilo se uložit do historie: '+e.message);
     updateSaveBtnUI();
@@ -3402,7 +3471,7 @@ function renderHistory(){
   $('mLabel').textContent = `${MONTHS[viewMonth.getMonth()]} ${viewMonth.getFullYear()}`;
   const mk=monthKey(viewMonth);
   const items = cloudRecords.filter(r=> (r.issuedAt||'').slice(0,7)===mk );
-  const inv = items.filter(r=>r.type!=='nabidka');   // cenová nabídka se do obratu a plateb nepočítá
+  const inv = items.filter(r=>r.type!=='nabidka' && !isRefunded(r));   // nabídka ani stornovaná (vrácená) faktura se do obratu nepočítá
   const invoiced = inv.reduce((s,r)=>s+(r.payable||0),0);
   const received = inv.filter(r=>r.paid).reduce((s,r)=>s+(r.payable||0),0);
   const unpaid = inv.filter(r=>!r.paid).length;
@@ -3422,7 +3491,7 @@ function renderHistory(){
       <div class="hist-row2">
         <span class="hist-badge">${badge}</span>
         <span class="dt">${dt}${r.nights?` · ${r.nights} nocí`:''}</span>
-        <button class="pay-badge ${r.paid?'paid':'unpaid'}" data-pay="${r.id}">${r.paid?'✓ Zaplaceno':'Nezaplaceno'}</button>
+        ${payBadge(r)}
         <button class="hist-del" data-id="${r.id}" title="Smazat">×</button>
       </div>
     </div>`;
@@ -3441,9 +3510,9 @@ function renderUpcoming(){
   }
   $('upcList').innerHTML = items.map(r=>`<div class="hist-item">
       <div class="hist-row1"><div class="nm">${esc(r.customer||'—')}</div>
-        <button class="pay-badge ${r.paid?'paid':'unpaid'}" data-pay="${r.id}">${r.paid?'✓ Zaplaceno':'Nezaplaceno'}</button>
+        ${payBadge(r)}
       </div>
-      <div class="hist-row2"><span class="dt">${fmtShort(r.stayFrom)} – ${fmtShort(r.stayTo)}${r.nights?` · ${r.nights} nocí`:''}${r.persons?` · ${r.persons} os.`:''}</span></div>
+      <div class="hist-row2"><span class="dt">${fmtShort(r.stayFrom)} – ${fmtShort(r.stayTo)}${r.nights?` · ${r.nights} nocí`:''}${r.persons?` · ${r.persons} os.`:''}${restTxt(r)}</span></div>
     </div>`).join('');
 }
 
@@ -3454,7 +3523,7 @@ function dueLocal(){ return addDaysStr(todayLocal(), +$('splat').value||7); }
 function dnu(n){ return `${n} ${n===1?'den':(n<5?'dny':'dní')}`; }
 /* level 3 = po splatnosti, 2 = přijíždí do týdne a nezaplaceno, 1 = splatné do 3 dnů; n = řazení uvnitř úrovně */
 function watchInfo(r,today){
-  if(r.paid || r.type==='nabidka') return null;
+  if(r.paid || r.type==='nabidka' || isRefunded(r)) return null;
   const t=dayNum(today);
   const due = r.dueAt || (r.issuedAt ? addDaysStr(r.issuedAt,7) : null);   // starší záznamy bez splatnosti: vystavení + 7 dní
   if(due){ const od=t-dayNum(due); if(od>0) return {level:3,n:od,label:`po splatnosti ${dnu(od)}`}; }
@@ -3485,7 +3554,107 @@ function renderWatch(){
   updateWatchBanner();
 }
 
-function renderPrehled(){ renderHistory(); renderUpcoming(); renderWatch(); }
+/* ---------- Platby: vrácení, doplatek, příjmy (přímo × Booking), FÚ ---------- */
+function isRefunded(r){ return (r.refunded||0)>0 && r.refunded>=(r.paidAmount||0); }
+function paidNet(r){ const pa=(r.paidAmount>0)?r.paidAmount:(r.paid?(r.payable||0):0); return pa-(r.refunded||0); }
+function payBadge(r){
+  if(isRefunded(r)) return `<span class="pay-badge refunded">Vráceno</span>`;
+  return `<button class="pay-badge ${r.paid?'paid':'unpaid'}" data-pay="${r.id}">${r.paid?'✓ Zaplaceno'+(r.paidAt?' '+fmtShort(r.paidAt):''):'Nezaplaceno'}</button>`;
+}
+function restTxt(r){
+  if(r.mode!=='zaloha' || !(r.total>0) || isRefunded(r)) return '';
+  const rest=r.total-paidNet(r); return rest>0 ? ` · doplatek ${czk(rest)}` : '';
+}
+/* prefix = 'RRRR-MM' (měsíc) nebo 'RRRR' (rok) */
+function incomeFor(prefix){
+  let direct=0, booking=0, fu=0;
+  const linked=new Set(cloudPlatby.filter(p=>p.invoiceId).map(p=>p.invoiceId));
+  for(const p of cloudPlatby){
+    if(!String(p.date).startsWith(prefix)) continue;
+    if(p.kind==='booking') booking+=p.amount;
+    else if(p.kind==='priamo' && !p.refunded) direct+=p.amount;
+    else if(p.kind==='fu') fu+=p.amount;
+  }
+  // hotovost a ručně zaškrtnuté faktury, ke kterým zatím není platba z banky
+  for(const r of cloudRecords){
+    if(r.type==='nabidka' || !r.paid || isRefunded(r)) continue;
+    if(r.pay!=='hotove' && linked.has(r.id)) continue;
+    if(String(r.paidAt||r.issuedAt||'').startsWith(prefix)) direct+=r.payable||0;
+  }
+  return {direct,booking,fu,total:direct+booking};
+}
+function renderIncome(){
+  const yr=String(viewMonth.getFullYear()), m=incomeFor(monthKey(viewMonth)), y=incomeFor(yr);
+  const pct=(a,b)=>b>0?Math.round(a/b*100)+' %':'–';
+  $('incDirect').textContent=czk(m.direct); $('incBooking').textContent=czk(m.booking);
+  $('incTotal').textContent=czk(m.total); $('incFu').textContent=czk(m.fu);
+  $('incYear').innerHTML=`Rok ${yr}: přímo <b>${czk(y.direct)}</b> (${pct(y.direct,y.total)}) · Booking <b>${czk(y.booking)}</b> (${pct(y.booking,y.total)}) · celkem <b>${czk(y.total)}</b> · FÚ <b>${czk(y.fu)}</b>`;
+  $('incHint').textContent = cloudPlatby.length
+    ? 'Přímo = platby od hostů z banky + hotovost. Booking = výplaty z Booking.com (po odečtení provize). FÚ = platby na účet finančního úřadu. Převody mezi vlastními účty se nepočítají.'
+    : 'Zatím bez dat z banky – dole v části „Platby z banky“ nahraj výpis.';
+}
+const KIND_LABEL={booking:'Booking',priamo:'Přímo',fu:'FÚ',vraceni:'Vráceno'};
+function renderPlatby(){
+  const mk=monthKey(viewMonth);
+  const items=cloudPlatby.filter(p=>String(p.date).startsWith(mk)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if(!items.length){ $('platbyList').innerHTML=`<div class="hist-empty">${cloudPlatby.length?'Za tento měsíc nejsou žádné platby z banky.':'Zatím žádné platby. Nahraj výpis z banky.'}</div>`; return; }
+  $('platbyList').innerHTML=items.map(p=>{
+    const inv=p.invoiceId?cloudRecords.find(r=>r.id===p.invoiceId):null;
+    const tag = p.kind!=='priamo' ? '' : (p.refunded ? ' · vráceno (kauce / storno)' : (inv ? ` · faktura ${esc(inv.invoiceNo||'')}` : ' · bez faktury v evidenci'));
+    const neg = p.kind==='fu' || p.kind==='vraceni';
+    return `<div class="hist-item"><div class="hist-row1"><div class="nm">${esc(p.who||'—')}</div><div class="hist-amt ${neg?'neg':''}">${neg?'− ':''}${czk(p.amount)}</div></div>
+      <div class="hist-row2"><span class="kind ${p.kind}">${KIND_LABEL[p.kind]||p.kind}</span><span class="dt">${fmtShort(p.date)}${p.vs?' · VS '+esc(p.vs):''}${tag}</span></div></div>`;
+  }).join('');
+}
+async function nahrajVypis(file){
+  try{
+    const text=await file.text();
+    const r=await apiFetch('POST','/api/platby/import',{text});
+    await refreshRecords(false);
+    const s=r.summary, bez=s.nesparovane.reduce((a,x)=>a+x.amount,0);
+    alert(`Výpis ${fmtShort(s.od)} – ${fmtShort(s.do)}: ${s.pohybu} pohybů\n\n`+
+      `• Booking: ${s.booking.n}× = ${czk(s.booking.sum)}\n• Přímé platby: ${s.priamo.n}× = ${czk(s.priamo.sum)}\n• Zaplaceno FÚ: ${s.fu.n}× = ${czk(s.fu.sum)}\n`+
+      `• Spárováno s fakturami: ${s.sparovano} (z toho zaplaceno ${s.zaplaceno})\n`+
+      (s.nesparovane.length?`• Přímé platby bez faktury v evidenci: ${s.nesparovane.length}× = ${czk(bez)}\n`:'')+
+      `\nVlastní převody (${s.vlastni.n}×), karty a ostatní výdaje se do příjmů nepočítají.`);
+  }catch(e){ alert('Import výpisu se nepovedl: '+e.message); }
+}
+
+/* ---------- Číslování faktur ---------- */
+let lastSavedNo=null, invnoChecked=false;
+function usedInvoice(no){ if(!no) return null; return cloudRecords.find(r=>r.type==='faktura' && String(r.invoiceNo||'')===no)||null; }
+/* další volné číslo řady RRRR + 3 číslice (např. 2026010); nový rok začíná RRRR001 */
+function nextInvoiceNo(){
+  const y=String(new Date().getFullYear());
+  const nums=cloudRecords.filter(r=>r.type==='faktura' && /^\d{7}$/.test(r.invoiceNo||'') && r.invoiceNo.startsWith(y)).map(r=>+r.invoiceNo);
+  return String(Math.max(+y*1000,...nums)+1);
+}
+function setInvoiceNo(v){ $('invno').value=v; saveState(); render(); }
+function updateInvWarn(){
+  const el=$('invWarn'); if(!el) return;
+  const cur=($('invno').value||'').trim(), dup=(type==='faktura' && cur!==lastSavedNo)?usedInvoice(cur):null;
+  if(!dup){ el.classList.add('hidden'); el.innerHTML=''; return; }
+  el.innerHTML=`⚠ Číslo ${esc(cur)} už je v historii (${esc(dup.customer||'—')}). <button type="button" class="linkbtn" id="invUseNext">Použít ${nextInvoiceNo()}</button>`;
+  el.classList.remove('hidden');
+}
+/* po načtení historie: číslo, které už je použité (nebo je z minulého roku), se samo nahradí dalším volným */
+function checkInvoiceNo(autoFix){
+  const cur=($('invno').value||'').trim(), y=String(new Date().getFullYear());
+  if(autoFix && (usedInvoice(cur) || (/^\d{7}$/.test(cur) && !cur.startsWith(y)))) setInvoiceNo(nextInvoiceNo());
+  updateInvWarn();
+}
+/* číslo se zvýší, až když po uložení začneš vyplňovat další doklad (ne hned po uložení – jinak by se odeslala jiná faktura než uložená) */
+function onFormEdit(e){
+  if(!lastSavedNo || e.target.id==='invno' || e.target.id==='invPlus') return;
+  if(type==='faktura' && ($('invno').value||'').trim()===lastSavedNo){ lastSavedNo=null; setInvoiceNo(nextInvoiceNo()); }
+  else lastSavedNo=null;
+}
+$('tabDoklad').addEventListener('input',onFormEdit);
+$('tabDoklad').addEventListener('change',onFormEdit);
+$('tabDoklad').addEventListener('click',e=>{ if(e.target.closest('.seg button, .stepper button, .chk')) onFormEdit(e); });
+$('invWarn').addEventListener('click',e=>{ if(e.target.closest('#invUseNext')){ lastSavedNo=null; setInvoiceNo(nextInvoiceNo()); } });
+
+function renderPrehled(){ renderHistory(); renderIncome(); renderUpcoming(); renderWatch(); renderPlatby(); }
 
 $('tabPrehled').addEventListener('click', async e=>{
   const pb=e.target.closest('.pay-badge');
@@ -3523,6 +3692,8 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden && loadPi
 setInterval(()=>{ if(!document.hidden && loadPin()) refreshRecords(false); },60000);
 $('cloudNote').addEventListener('click',e=>{ if(e.target.closest('#btnUnlock')) refreshRecords(true); });
 $('btnBackup').addEventListener('click',downloadBackup);
+$('btnVypis').addEventListener('click',()=>$('vypisFile').click());
+$('vypisFile').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) nahrajVypis(f); });
 $('btnRestore').addEventListener('click',()=>$('restoreFile').click());
 $('restoreFile').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) restoreBackup(f); });
 

@@ -2,7 +2,7 @@
 import { getStore } from '@netlify/blobs';
 import { handle } from '../lib/zaznamy-core.mjs';
 
-export const config = { path: ['/api/zaznamy', '/api/zaznamy/*'] };
+export const config = { path: ['/api/zaznamy', '/api/zaznamy/*', '/api/platby', '/api/platby/*'] };
 
 const MAX_BODY = 1_000_000; // znaků
 
@@ -15,7 +15,10 @@ function reply(status, json) {
 
 export default async (req) => {
   const url = new URL(req.url);
-  const parts = url.pathname.replace(/^\/api\/zaznamy\/?/, '').split('/').filter(Boolean);
+  const m = url.pathname.match(/^\/api\/(zaznamy|platby)(\/.*)?$/);
+  if (!m) return reply(404, { error: 'Neznámá adresa.' });
+  const resource = m[1];
+  const parts = (m[2] || '').split('/').filter(Boolean);
 
   let body = null;
   if (req.method === 'POST' || req.method === 'PATCH') {
@@ -28,22 +31,28 @@ export default async (req) => {
 
   const expectedPin = globalThis.Netlify?.env?.get?.('EVIDENCE_PIN') ?? process.env.EVIDENCE_PIN;
   // Úložiště se otevře až při prvním použití (po kontrole hesla); chyba se vrátí jako čitelná odpověď.
-  let real = null;
-  const open = () => (real ??= getStore({ name: 'zaznamy-tachalupa', consistency: 'strong' }));
-  const store = {
-    list: (...a) => open().list(...a),
-    get: (...a) => open().get(...a),
-    setJSON: (...a) => open().setJSON(...a),
-    delete: (...a) => open().delete(...a),
+  const wrap = (name) => {
+    let real = null;
+    const open = () => (real ??= getStore({ name, consistency: 'strong' }));
+    return {
+      list: (...a) => open().list(...a),
+      get: (...a) => open().get(...a),
+      setJSON: (...a) => open().setJSON(...a),
+      delete: (...a) => open().delete(...a),
+    };
   };
+  const store = wrap('zaznamy-tachalupa');
+  const platbyStore = wrap('platby-tachalupa');
 
   const { status, json } = await handle({
     method: req.method,
+    resource,
     parts,
     body,
     pin: req.headers.get('x-pin'),
     expectedPin,
     store,
+    platbyStore,
   });
 
   // Pomalejší odpověď na špatné heslo ztěžuje hádání.

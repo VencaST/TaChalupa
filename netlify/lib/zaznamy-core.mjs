@@ -1,6 +1,7 @@
 // Logika API pro historii dokladů (TA CHALUPA).
 // Žádná závislost na Netlify – "store" se předává zvenku, takže jde otestovat s falešným úložištěm.
 import { randomUUID, createHash, timingSafeEqual } from 'node:crypto';
+import { importVypis, ID_PLATBY } from './banka.mjs';
 
 const TYPES = ['doklad', 'nabidka', 'faktura'];
 const MODES = ['zaloha', 'pronajem'];
@@ -61,6 +62,9 @@ export function sanitizeRecord(input) {
     issuedAt,
     dueAt: dateOrNull(input.dueAt, 'dueAt'),
     paid: input.paid === true,
+    paidAt: dateOrNull(input.paidAt, 'paidAt'),
+    paidAmount: num(input.paidAmount ?? 0, 0, 10_000_000, 'paidAmount'),
+    refunded: num(input.refunded ?? 0, 0, 10_000_000, 'refunded'),
   };
 }
 
@@ -68,6 +72,11 @@ function pinOk(given, expected) {
   const a = createHash('sha256').update(String(given ?? '')).digest();
   const b = createHash('sha256').update(String(expected)).digest();
   return timingSafeEqual(a, b);
+}
+
+async function listRaw(store) {
+  const { blobs } = await store.list();
+  return (await Promise.all(blobs.map((b) => store.get(b.key, { type: 'json' })))).filter(Boolean);
 }
 
 async function listAll(store) {
@@ -82,7 +91,7 @@ async function listAll(store) {
  * @param {{method:string, parts:string[], body:any, pin:string|null, expectedPin:string|undefined, store:any, now?:()=>Date}} ctx
  * @returns {Promise<{status:number, json:any}>}
  */
-export async function handle({ method, parts, body, pin, expectedPin, store, now = () => new Date() }) {
+export async function handle({ method, parts, body, pin, expectedPin, store, platbyStore, resource = 'zaznamy', now = () => new Date() }) {
   try {
     if (!expectedPin) {
       return { status: 500, json: { error: 'Na serveru chybí proměnná prostředí EVIDENCE_PIN.' } };
@@ -92,6 +101,35 @@ export async function handle({ method, parts, body, pin, expectedPin, store, now
     }
 
     const [first, extra] = parts;
+
+    // ---------- /api/platby (bankovní platby: Booking / přímo / FÚ / vrácení) ----------
+    if (resource === 'platby') {
+      if (!platbyStore) throw new Error('Chybí úložiště plateb.');
+      if (parts.length === 0 && method === 'GET') {
+        const list = (await listRaw(platbyStore)).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+        return { status: 200, json: { platby: list } };
+      }
+      if (first === 'import' && parts.length === 1 && method === 'POST') {
+        if (!body || typeof body.text !== 'string' || !body.text.trim()) throw new Bad('Chybí text výpisu.');
+        const faktury = await listRaw(store);
+        let r;
+        try { r = importVypis(body.text, await listRaw(platbyStore), faktury); } catch (e) { throw new Bad(e.message); }
+        for (let i = 0; i < r.platby.length; i += 25) {
+          await Promise.all(r.platby.slice(i, i + 25).map((p) => platbyStore.setJSON(p.id, p)));
+        }
+        for (const patch of r.patches) {
+          const f = faktury.find((x) => x.id === patch.id);
+          if (f) await store.setJSON(f.id, { ...f, paid: patch.paid, paidAt: patch.paidAt, paidAmount: patch.paidAmount, refunded: patch.refunded });
+        }
+        return { status: 200, json: { summary: r.summary } };
+      }
+      if (parts.length === 1 && method === 'DELETE') {
+        if (!ID_PLATBY.test(first)) throw new Bad('Neplatné ID platby.');
+        await platbyStore.delete(first);
+        return { status: 200, json: { ok: true } };
+      }
+      return { status: 405, json: { error: 'Nepodporovaná operace.' } };
+    }
 
     // GET /api/zaznamy
     if (parts.length === 0 && method === 'GET') {
@@ -136,6 +174,10 @@ export async function handle({ method, parts, body, pin, expectedPin, store, now
       }
       if (!body || typeof body.paid !== 'boolean') throw new Bad('Lze měnit jen stav platby („paid“: true/false).');
       const updated = { ...existing, paid: body.paid };
+      if (body.paid) {
+        updated.paidAmount = Math.max(existing.paidAmount || 0, existing.payable || 0);
+        updated.paidAt = dateOrNull(body.paidAt, 'paidAt') || existing.paidAt || null;
+      } else { updated.paidAmount = 0; updated.paidAt = null; updated.refunded = 0; }
       await store.setJSON(first, updated);
       return { status: 200, json: { record: updated } };
     }
