@@ -1,0 +1,3558 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B2E2C">
+<title>TA CHALUPA — Doklady & rezervace</title>
+
+<!-- PWA / iOS -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TA CHALUPA">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --accent:#16BFB0;        /* tyrkys (logo) */
+  --accent-2:#0E9C90;      /* tmavší tyrkys */
+  --accent-bright:#2DD4C8;
+  --app-bg-1:#0C302E;      /* petrolej tmavý */
+  --app-bg-2:#0A2523;
+  --surface:#12403C;       /* karta v appce */
+  --surface-2:#0F3835;
+  --field:#0E302D;
+  --line-dark:#1F5A54;
+  --txt:#EAF3F1;
+  --txt-muted:#8FB4AE;
+  /* doklad (světlý, tisknutelný) */
+  --paper:#FBFAF6;
+  --paper-2:#F4F1E9;
+  --ink:#16302D;
+  --ink-soft:#4A605C;
+  --paper-line:#E4E0D4;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:radial-gradient(120% 90% at 50% -10%, #12403C 0%, var(--app-bg-1) 45%, var(--app-bg-2) 100%);
+  color:var(--txt);
+  min-height:100vh;
+  padding:env(safe-area-inset-top,0px) 0 calc(40px + env(safe-area-inset-bottom,0px));
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+
+/* ---------- Hlavička appky ---------- */
+.appbar{display:flex;align-items:center;gap:12px;padding:16px 2px 8px}
+.logo-mark{width:40px;height:40px;color:var(--accent-bright);flex:0 0 auto}
+.logo-mark svg{display:block;width:100%;height:100%}
+.appbar .name{font-weight:800;letter-spacing:.22em;font-size:15px}
+.appbar .sub{font-size:11px;color:var(--txt-muted);letter-spacing:.04em;margin-top:1px}
+
+/* ---------- Install banner ---------- */
+#installbar{display:none;background:linear-gradient(180deg,#134641,#0F3A36);border:1px solid var(--line-dark);
+  border-radius:14px;padding:11px 12px;margin:6px 0 4px;font-size:13px;color:var(--txt);align-items:center;gap:10px}
+#installbar b{color:var(--accent-bright)}
+#installbar .x{margin-left:auto;color:var(--txt-muted);font-size:20px;line-height:1;padding:2px 6px;cursor:pointer}
+#installbtn{background:var(--accent);color:#04211E;border:none;font-weight:700;border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer}
+
+/* ---------- Karty / sekce ---------- */
+.card{background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line-dark);
+  border-radius:16px;padding:14px;margin:10px 0}
+.card h2{margin:0 0 10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-bright);font-weight:700}
+label.fl{display:block;font-size:11px;color:var(--txt-muted);margin:0 0 4px;letter-spacing:.03em}
+.row{display:flex;gap:10px}.row>*{flex:1}
+input,select,textarea{width:100%;background:var(--field);border:1px solid var(--line-dark);color:var(--txt);
+  border-radius:11px;padding:11px 12px;font:inherit;font-size:15px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input[type=date]{min-height:46px}
+textarea{resize:vertical;min-height:44px;line-height:1.4}
+.hint{font-size:11px;color:var(--txt-muted);margin-top:5px}
+.mb{margin-bottom:10px}
+
+/* segmenty */
+.seg{display:flex;background:var(--field);border:1px solid var(--line-dark);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;background:transparent;border:none;color:var(--txt-muted);font:inherit;font-weight:600;font-size:13px;
+  padding:9px 6px;border-radius:9px;cursor:pointer;transition:.15s}
+.seg button.on{background:var(--accent);color:#04211E}
+.seg.sm button{font-size:12px;padding:8px 4px}
+
+/* položky pobytu */
+.calcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:center;gap:9px;background:var(--field);border:1px solid var(--line-dark);
+  border-radius:11px;padding:10px 11px;font-size:14px;cursor:pointer;user-select:none}
+.chk input{width:18px;height:18px;flex:0 0 auto;accent-color:var(--accent)}
+.chk .p{margin-left:auto;color:var(--txt-muted);font-size:12px}
+.stepper{display:flex;align-items:center;gap:0;background:var(--field);border:1px solid var(--line-dark);border-radius:11px;overflow:hidden}
+.stepper button{width:42px;height:44px;background:transparent;border:none;color:var(--accent-bright);font-size:20px;font-weight:700;cursor:pointer}
+.stepper input{border:none;text-align:center;border-radius:0;background:transparent}
+
+.summary{display:flex;justify-content:space-between;align-items:baseline;padding:9px 2px;border-top:1px dashed var(--line-dark);font-size:14px}
+.summary:first-of-type{border-top:none}
+.summary .v{font-weight:700}
+.grand{font-size:20px;color:var(--accent-bright);font-weight:800}
+
+/* akční tlačítka */
+.actions{display:flex;gap:10px;margin:14px 0 4px}
+.btn{flex:1;border:none;border-radius:14px;padding:15px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--accent);color:#04211E}
+.btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line-dark)}
+.btn:active{transform:translateY(1px)}
+
+/* ---------- NÁHLED DOKLADU ---------- */
+.preview-wrap{margin-top:6px;border-radius:16px;overflow:auto;-webkit-overflow-scrolling:touch;background:#000;padding:10px;border:1px solid var(--line-dark)}
+#doc{width:520px;margin:0 auto;background:var(--paper);color:var(--ink);border-radius:6px;
+  font-size:13px;line-height:1.5;position:relative}
+.doc-pad{padding:30px 32px 26px}
+.doc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.doc-brand{display:flex;align-items:center;gap:12px}
+.doc-logo{width:52px;height:52px;color:var(--accent-2);flex:0 0 auto}
+.doc-logo svg{display:block;width:100%;height:100%}
+.doc-brand .bn{font-weight:800;letter-spacing:.18em;font-size:17px;color:var(--ink)}
+.doc-brand .bs{font-size:10.5px;color:var(--ink-soft);letter-spacing:.02em;margin-top:2px;max-width:180px}
+.doc-title{text-align:right}
+.doc-title .t{font-size:24px;font-weight:800;letter-spacing:.02em;color:var(--ink);text-transform:uppercase}
+.doc-title .n{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.rule{height:2px;background:var(--accent-2);margin:16px 0 14px;border-radius:2px}
+.parties{display:flex;gap:24px;margin-bottom:14px}
+.parties .col{flex:1}
+.eyebrow{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-2);font-weight:700;margin-bottom:5px}
+.parties .nm{font-weight:700;font-size:14px;color:var(--ink)}
+.parties .li{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:11.5px;color:var(--ink-soft);background:var(--paper-2);
+  border-radius:8px;padding:10px 14px;margin-bottom:14px}
+.meta b{color:var(--ink);font-weight:700}
+.stay{font-size:11.5px;color:var(--ink-soft);margin-bottom:12px}
+.stay b{color:var(--ink)}
+
+table.items{width:100%;border-collapse:collapse;margin-bottom:4px}
+table.items th{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);text-align:left;
+  padding:0 6px 7px;border-bottom:1.5px solid var(--paper-line);font-weight:700}
+table.items th.r,table.items td.r{text-align:right}
+table.items td{padding:9px 6px;border-bottom:1px solid var(--paper-line);vertical-align:top;font-size:12.5px}
+table.items td .d2{font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+.totbox{display:flex;justify-content:flex-end;margin-top:12px}
+.totbox .inner{min-width:230px}
+.totline{display:flex;justify-content:space-between;padding:4px 0;font-size:12.5px;color:var(--ink-soft)}
+.totline.grand-l{border-top:2px solid var(--accent-2);margin-top:6px;padding-top:9px;font-size:17px;color:var(--ink);font-weight:800}
+.totline.grand-l .amt{color:var(--accent-2)}
+.rest{font-size:11.5px;color:var(--ink-soft);text-align:right;margin-top:6px}
+.rest b{color:var(--ink)}
+
+.payblock{display:flex;gap:16px;align-items:center;margin-top:18px;padding-top:14px;border-top:1px dashed var(--paper-line)}
+.paycol{flex:1;font-size:11.5px;color:var(--ink-soft)}
+.paycol .k{color:var(--ink);font-weight:700;font-size:12.5px}
+.paycol .big{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:.01em}
+#qrimg{width:118px;height:118px;flex:0 0 auto;background:#fff;border-radius:8px;padding:6px;border:1px solid var(--paper-line)}
+#qrimg canvas,#qrimg img{width:100%;height:100%;display:block;image-rendering:pixelated}
+.qrcap{font-size:9px;color:var(--ink-soft);text-align:center;margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
+.note{font-size:10.5px;color:var(--ink-soft);margin-top:16px;line-height:1.5}
+.foot{margin-top:14px;padding-top:12px;border-top:1px solid var(--paper-line);display:flex;flex-wrap:wrap;gap:4px 18px;font-size:10.5px;color:var(--ink-soft)}
+.foot b{color:var(--ink)}
+.hidden{display:none!important}
+.fine{font-size:11px;color:var(--txt-muted);text-align:center;margin:14px 4px 0;line-height:1.5}
+
+/* ---------- Tabbar ---------- */
+.tabbar{display:flex;background:var(--field);border:1px solid var(--line-dark);border-radius:13px;padding:3px;gap:3px;margin:10px 0 4px}
+.tabbar button{flex:1;background:transparent;border:none;color:var(--txt-muted);font:inherit;font-weight:700;font-size:13px;
+  padding:11px 6px;border-radius:10px;cursor:pointer}
+.tabbar button.on{background:var(--accent);color:#04211E}
+.tabpane.hidden{display:none}
+
+/* ---------- Uložit do historie / připomenutí ---------- */
+.saverow{display:flex;align-items:center;gap:10px;margin:12px 0 0}
+.btn.save{flex:1;background:transparent;border:1.5px dashed var(--line-dark);color:var(--accent-bright);
+  border-radius:14px;padding:13px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.save.done{border-style:solid;border-color:var(--accent-2);color:var(--accent-bright)}
+.toast{position:fixed;left:14px;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:612px;margin:0 auto;background:#0F3835;border:1px solid var(--accent-2);
+  border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--txt);z-index:500;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);transform:translateY(160%);transition:transform .25s}
+.toast.show{transform:translateY(0)}
+.toast button{background:var(--accent);color:#04211E;border:none;border-radius:9px;padding:8px 12px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;margin-left:auto}
+
+/* ---------- Kalendář ---------- */
+.calrow{display:flex;gap:10px;margin:10px 0 0}
+.btn.cal{flex:1;background:transparent;border:1.5px solid var(--line-dark);color:var(--txt);
+  border-radius:14px;padding:12px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn.cal:active{background:var(--field)}
+
+/* ---------- Přehled ---------- */
+.monthnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.monthnav button{background:var(--field);border:1px solid var(--line-dark);color:var(--txt);width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer}
+.monthnav .lbl{font-weight:700;font-size:15px;text-transform:capitalize}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.statcard{background:var(--field);border:1px solid var(--line-dark);border-radius:13px;padding:12px}
+.statcard .k{font-size:10.5px;color:var(--txt-muted);letter-spacing:.05em;text-transform:uppercase}
+.statcard .v{font-size:19px;font-weight:800;color:var(--accent-bright);margin-top:4px}
+.hist-empty{text-align:center;color:var(--txt-muted);font-size:13px;padding:26px 10px}
+.hist-item{padding:11px 4px;border-bottom:1px solid var(--line-dark)}
+.hist-item:last-child{border-bottom:none}
+.hist-row1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.hist-row1 .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-amt{font-size:14px;font-weight:800;flex:0 0 auto;color:var(--accent-bright)}
+.hist-row2{display:flex;align-items:center;gap:8px;margin-top:7px;flex-wrap:wrap}
+.hist-badge{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:6px;
+  background:rgba(45,212,200,.14);color:var(--accent-bright);flex:0 0 auto}
+.hist-row2 .dt{font-size:11px;color:var(--txt-muted)}
+.pay-badge{border:none;border-radius:7px;padding:4px 9px;font-size:10.5px;font-weight:700;letter-spacing:.02em;cursor:pointer;flex:0 0 auto}
+.pay-badge.paid{background:rgba(52,211,153,.16);color:#34D399}
+.pay-badge.unpaid{background:rgba(248,113,113,.16);color:#F87171}
+.hist-del{margin-left:auto;background:transparent;border:none;color:var(--txt-muted);font-size:18px;padding:2px 4px;cursor:pointer;flex:0 0 auto}
+.modal{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{width:100%;max-width:340px;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line-dark);border-radius:16px;padding:18px}
+.modal-title{font-weight:800;font-size:15px;margin-bottom:6px}
+.modal-err{color:#FF9270;font-size:12px;min-height:16px;margin-top:8px}
+.demo-banner{background:#3a2f0f;border:1px solid #7a6320;color:#ffe9a6;border-radius:12px;padding:9px 12px;font-size:12px;margin:10px 0 0;line-height:1.45}
+.watch-tag{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;flex:0 0 auto}
+.watch-tag.w3{background:rgba(248,113,113,.18);color:#F87171}
+.watch-tag.w2{background:rgba(251,191,36,.18);color:#FBBF24}
+.watch-tag.w1{background:rgba(45,212,200,.14);color:var(--accent-bright)}
+.tab-badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:9px;background:#F87171;color:#fff;font-size:11px;font-weight:800;line-height:1.3}
+.watch-banner{background:#3b1a1a;border:1px solid #7f2d2d;color:#ffd0d0;border-radius:12px;padding:10px 12px;font-size:13px;margin:8px 0 0;cursor:pointer;line-height:1.4}
+.cloud-note{font-size:11px;color:var(--txt-muted);text-align:center;margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="appbar">
+    <div class="logo-mark" id="logoSlot"></div>
+    <div>
+      <div class="name">TA CHALUPA</div>
+      <div class="sub">Doklady &amp; rezervace · Prostřední Bečva</div>
+    </div>
+  </div>
+
+  <div id="installbar">
+    <span id="installtxt"></span>
+    <button id="installbtn">Nainstalovat</button>
+    <span class="x" id="installx">×</span>
+  </div>
+
+  <div class="tabbar" id="tabbar">
+    <button data-tab="doklad" class="on">Nový doklad</button>
+    <button data-tab="prehled">Přehled</button>
+  </div>
+  <div class="watch-banner hidden" id="watchBanner"></div>
+
+  <div id="tabDoklad" class="tabpane">
+
+  <!-- ODBĚRATEL + TERMÍN -->
+  <div class="card">
+    <h2>Host &amp; termín</h2>
+    <div class="mb">
+      <label class="fl">Odběratel (jméno / firma)</label>
+      <input id="cust" placeholder="Jan Novák" autocomplete="off">
+    </div>
+    <div class="mb">
+      <label class="fl">Adresa odběratele (nepovinné)</label>
+      <textarea id="custAddr" rows="2" placeholder="Ulice č.p., Město, PSČ"></textarea>
+    </div>
+    <div class="row mb">
+      <div>
+        <label class="fl">Příjezd</label>
+        <input id="from" type="date">
+      </div>
+      <div>
+        <label class="fl">Odjezd</label>
+        <input id="to" type="date">
+      </div>
+    </div>
+    <div class="hint" id="nightsHint">Vyber termín — počet nocí i cena se dopočítají samy.</div>
+  </div>
+
+  <!-- POBYT / CENA -->
+  <div class="card">
+    <h2>Pobyt</h2>
+    <div class="calcgrid mb">
+      <div>
+        <label class="fl">Počet osob</label>
+        <div class="stepper">
+          <button type="button" id="pMinus">−</button>
+          <input id="persons" type="number" inputmode="numeric" value="6" min="1" max="17">
+          <button type="button" id="pPlus">+</button>
+        </div>
+      </div>
+      <div>
+        <label class="fl">Sezóna / sazba</label>
+        <select id="season">
+          <option value="leto">Léto</option>
+          <option value="mimo">Mimo sezónu</option>
+          <option value="tyden">Týdenní (min. 5 nocí)</option>
+          <option value="silvestr">Silvestr (za objekt/den)</option>
+        </select>
+      </div>
+    </div>
+    <div class="mb">
+      <label class="fl">Způsob výpočtu ceny</label>
+      <div class="seg mb" id="segPriceMode">
+        <button type="button" data-v="rate" class="on">Podle sazby</button>
+        <button type="button" data-v="manual">Zadat částku</button>
+      </div>
+    </div>
+
+    <div class="mb" id="rateWrap">
+      <label class="fl" id="rateLabel">Cena za osobu / noc (Kč)</label>
+      <input id="rate" type="number" inputmode="numeric" value="650">
+      <div class="hint" id="rateHint"></div>
+    </div>
+
+    <div class="mb hidden" id="manualWrap">
+      <label class="fl">Ubytování celkem (Kč)</label>
+      <input id="manualBase" type="number" inputmode="numeric" value="0" min="0">
+      <div class="hint">Zadej rovnou celkovou cenu ubytování za pobyt (bez úklidu, psa apod.) — nepočítá se z osob ani sazby.</div>
+    </div>
+
+    <div class="mb">
+      <label class="fl">Sleva na pobyt (%)</label>
+      <div class="row" style="gap:8px">
+        <input id="discount" type="number" inputmode="numeric" value="0" min="0" max="100" style="flex:1">
+        <div class="seg sm" id="segDiscQuick" style="flex:2">
+          <button type="button" data-v="0">0 %</button>
+          <button type="button" data-v="10">10 %</button>
+          <button type="button" data-v="20">20 %</button>
+        </div>
+      </div>
+      <div class="hint">Např. sleva při chybě z naší strany nebo za opakovaný pobyt. Počítá se z ceny ubytování.</div>
+    </div>
+
+    <label class="fl">Doplňkové služby</label>
+    <div class="mb">
+      <label class="chk mb" style="margin-bottom:8px">
+        <input type="checkbox" id="cleanOn" checked>
+        Závěrečný úklid <span class="p">1 000 Kč</span>
+      </label>
+      <div class="row mb" style="margin-bottom:8px">
+        <label class="chk" style="flex:2">
+          <input type="checkbox" id="dogOn">
+          Pes <span class="p">250 Kč/noc</span>
+        </label>
+        <div class="stepper" style="flex:1">
+          <button type="button" id="dMinus">−</button>
+          <input id="dogs" type="number" inputmode="numeric" value="1" min="1" max="5">
+          <button type="button" id="dPlus">+</button>
+        </div>
+      </div>
+      <label class="chk">
+        <input type="checkbox" id="depositCautionOn">
+        Vratná kauce (mimo částku) <span class="p">5 000 Kč</span>
+      </label>
+    </div>
+
+    <!-- shrnutí -->
+    <div class="summary"><span>Ubytování</span><span class="v" id="sBase">—</span></div>
+    <div class="summary hidden" id="sDiscRow"><span>Sleva</span><span class="v" id="sDisc">—</span></div>
+    <div class="summary" id="sCleanRow"><span>Závěrečný úklid</span><span class="v" id="sClean">—</span></div>
+    <div class="summary hidden" id="sDogRow"><span>Pes</span><span class="v" id="sDog">—</span></div>
+    <div class="summary"><span>Celkem za pobyt</span><span class="grand" id="sTotal">—</span></div>
+  </div>
+
+  <!-- DRUH DOKLADU -->
+  <div class="card">
+    <h2>Doklad</h2>
+    <label class="fl">Co vystavit</label>
+    <div class="seg mb" id="segType">
+      <button data-v="doklad">Doklad</button>
+      <button data-v="nabidka">Cenová nabídka</button>
+      <button data-v="faktura" class="on">Faktura</button>
+    </div>
+
+    <label class="fl">Účel platby</label>
+    <div class="seg sm mb" id="segMode">
+      <button data-v="zaloha" class="on">Záloha 50 %</button>
+      <button data-v="pronajem">Pronájem chalupy</button>
+    </div>
+
+    <div class="mb">
+      <label class="fl">Text položky (upravitelné)</label>
+      <textarea id="descMain" rows="2"></textarea>
+      <div class="hint">Text si můžeš přepsat. Přepínač výše jen předvyplní.</div>
+    </div>
+
+    <div class="mb" id="depAmtWrap">
+      <label class="fl">Výše zálohy (Kč) — výchozí 50 %</label>
+      <input id="depAmt" type="number" inputmode="numeric">
+    </div>
+
+    <label class="fl">Úhrada</label>
+    <div class="seg mb" id="segPay">
+      <button data-v="ucet" class="on">Na účet</button>
+      <button data-v="hotove">Hotově</button>
+    </div>
+
+    <!-- pouze faktura -->
+    <div id="invFields">
+      <div class="row mb">
+        <div style="flex:2">
+          <label class="fl">Číslo faktury</label>
+          <div class="stepper">
+            <input id="invno" inputmode="numeric" value="2026001">
+            <button type="button" id="invPlus" style="width:56px;font-size:14px;font-weight:700">+1</button>
+          </div>
+        </div>
+        <div>
+          <label class="fl">Splatnost (dní)</label>
+          <input id="splat" type="number" inputmode="numeric" value="7">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NÁHLED -->
+  <div class="card">
+    <h2>Náhled</h2>
+    <div class="preview-wrap">
+      <div id="doc"><div class="doc-pad" id="docPad"></div></div>
+    </div>
+    <div class="saverow">
+      <button class="btn save" id="btnSave">💾 Uložit do historie</button>
+    </div>
+    <div class="calrow hidden" id="calRow">
+      <button class="btn cal" id="btnICS">📅 Do kalendáře (.ics)</button>
+      <button class="btn cal" id="btnGCal">Google kalendář</button>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="btnPrint">Tisk / PDF</button>
+      <button class="btn primary" id="btnSend">Odeslat</button>
+    </div>
+    <div class="fine">Odeslat = vytvoří obrázek dokladu a otevře sdílení (WhatsApp, e‑mail, SMS). Tisk = uloží PDF. Kalendář = uloží si pobyt pouze pro tebe.</div>
+  </div>
+
+  </div><!-- /tabDoklad -->
+
+  <div id="tabPrehled" class="tabpane hidden">
+    <div class="card">
+      <div class="monthnav">
+        <button id="mPrev" type="button">‹</button>
+        <div class="lbl" id="mLabel">—</div>
+        <button id="mNext" type="button">›</button>
+      </div>
+      <div class="statgrid">
+        <div class="statcard"><div class="k">Fakturováno</div><div class="v" id="statInvoiced">0 Kč</div></div>
+        <div class="statcard"><div class="k">Přijato</div><div class="v" id="statReceived">0 Kč</div></div>
+        <div class="statcard"><div class="k">Počet dokladů</div><div class="v" id="statCount">0</div></div>
+        <div class="statcard"><div class="k">Čeká na platbu</div><div class="v" id="statUnpaid">0</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Hlídání plateb</h2>
+      <div class="hint" style="margin:-4px 0 8px">Nezaplacené faktury po splatnosti, hosté, kteří přijíždějí do týdne bez zaplacení, a splatnosti do 3 dnů. Až platba dorazí, klepni na „Nezaplaceno“.</div>
+      <div id="watchList"></div>
+    </div>
+    <div class="card">
+      <h2>Kdo přijede</h2>
+      <div id="upcList"><div class="hist-empty">Žádné nadcházející pobyty.</div></div>
+    </div>
+    <div class="card">
+      <h2>Historie</h2>
+      <div id="histList"><div class="hist-empty">Zatím nic uloženo.</div></div>
+      <div class="cloud-note" id="cloudNote"></div>
+      <div class="calrow">
+        <button class="btn cal" id="btnBackup" type="button">⬇ Stáhnout zálohu</button>
+        <button class="btn cal" id="btnRestore" type="button">⬆ Obnovit ze zálohy</button>
+      </div>
+      <input type="file" id="restoreFile" accept="application/json,.json" class="hidden">
+    </div>
+  </div>
+
+  <div class="fine" style="opacity:.7">TA CHALUPA · Prostřední Bečva 168 · IČ 19694938 · neplátce DPH</div>
+</div>
+
+<div class="modal hidden" id="pinModal">
+  <div class="modal-box">
+    <div class="modal-title">Heslo k evidenci</div>
+    <div class="hint">Heslo nastavené v Netlify (proměnná EVIDENCE_PIN). Zapamatuje se v tomto zařízení.</div>
+    <input id="pinInput" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" placeholder="Heslo" style="margin-top:10px">
+    <div class="modal-err" id="pinErr"></div>
+    <div class="row" style="gap:10px;margin-top:12px">
+      <button class="btn ghost" id="pinCancel" type="button">Zrušit</button>
+      <button class="btn primary" id="pinOk" type="button">Potvrdit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastMsg">Nezapomeň uložit doklad do historie.</span>
+  <button id="toastSave" type="button">Uložit</button>
+</div>
+
+<!-- ===== INLINE KNIHOVNY ===== -->
+<script>//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+</script>
+<script>/*! dom-to-image-more v3.10.2 2026-07-10 19:56:41 UTC */
+(m=>{let g=(()=>{let e=0;return{escape:function(e){return e.replace(/([.*+?^${}()|[\]/\\])/g,"\\$1")},isDataUrl:function(e){return-1!==e.search(/^(data:)/)},canvasToBlob:function(t){return t.toBlob?new Promise(function(e){t.toBlob(e)}):(o=t,new Promise(function(e){var t=p(o.toDataURL().split(",")[1]),n=t.length,r=new Uint8Array(n);for(let e=0;e<n;e++)r[e]=t.charCodeAt(e);e(new Blob([r],{type:"image/png"}))}));var o},resolveUrl:function(e,t){var n=document.implementation.createHTMLDocument(),r=n.createElement("base"),o=(n.head.appendChild(r),n.createElement("a"));return Object.assign(o.style,y),n.body.appendChild(o),r.href=t,o.href=e,o.href},getAndEncode:function(e,t){return c(e,t,!0).then(s)},getResourceText:function(e,t,n){return c(e,t,n).then(a)},uid:function(){return"u"+("0000"+(Math.random()*Math.pow(36,4)<<0).toString(36)).slice(-4)+e++},asArray:function(e){return Array.from(e)},escapeXhtml:function(e){return e.replace(/%/g,"%25").replace(/#/g,"%23").replace(/\n/g,"%0A")},makeImage:function(i){return"data:,"!==i?new Promise(function(t,n){let r=document.createElementNS(v,"svg"),o=new Image;w.impl.options.useCredentials&&(o.crossOrigin="use-credentials"),o.onload=function(){function e(){window&&window.requestAnimationFrame?window.requestAnimationFrame(function(){t(o)}):t(o)}r.remove(),"function"==typeof o.decode?o.decode().then(e,e):e()},o.onerror=e=>{r.remove();var t=String(i).split(",",1)[0],t=new Error("dom-to-image-more: failed to rasterize the generated image ("+t+", "+String(i).length+" bytes). The source may contain malformed markup, an unsupported element, or a tainted/cross-origin resource.");t.cause=e,n(t)},r.appendChild(o),Object.assign(r.style,y),o.src=i,document.body.appendChild(r)}):Promise.resolve()},width:function(e){var t,n,r=d(e,"width");return isNaN(r)?(t=f(e))?t.width:(t=d(e,"border-left-width"),n=d(e,"border-right-width"),e.scrollWidth+t+n):r},height:function(e){var t,n,r=d(e,"height");return isNaN(r)?(t=f(e))?t.height:(t=d(e,"border-top-width"),n=d(e,"border-bottom-width"),e.scrollHeight+t+n):r},getWindow:r,isElement:l,isElementHostForOpenShadowRoot:function(e){return l(e)&&null!==e.shadowRoot},isShadowRoot:n,isInShadowRoot:i,isHTMLElement:function(e){return t(e,"HTMLElement")},isHTMLCanvasElement:function(e){return t(e,"HTMLCanvasElement")},isHTMLInputElement:function(e){return t(e,"HTMLInputElement")},isHTMLImageElement:function(e){return t(e,"HTMLImageElement")},isHTMLLinkElement:function(e){return t(e,"HTMLLinkElement")},isHTMLScriptElement:function(e){return t(e,"HTMLScriptElement")},isHTMLStyleElement:function(e){return t(e,"HTMLStyleElement")},isHTMLTextAreaElement:function(e){return t(e,"HTMLTextAreaElement")},isShadowSlotElement:function(e){return i(e)&&t(e,"HTMLSlotElement")},isSVGElement:function(e){return t(e,"SVGElement")},isSVGImageElement:function(e){return t(e,"SVGImageElement")},isSVGSVGElement:function(e){return t(e,"SVGSVGElement")},isSVGRectElement:function(e){return t(e,"SVGRectElement")},isSVGUseElement:function(e){return t(e,"SVGUseElement")},isDimensionMissing:function(e){return isNaN(e)||e<=0},isInstanceOf:t};function r(e){e=e?e.ownerDocument:void 0;return(e?e.defaultView:void 0)||("undefined"!=typeof window?window:void 0)||(void 0!==m?m:void 0)||globalThis}function t(e,t){var n=r(e);return o(e,n,t)||o(e,n&&n.parent,t)}function o(e,t,n){try{var r=t&&t[n];return"function"==typeof r&&e instanceof r}catch(e){return!1}}function n(e){return t(e,"ShadowRoot")}function i(e){return null!=e&&void 0!==e.getRootNode&&n(e.getRootNode())}function l(e){return t(e,"Element")}function s(e){return null==e||""===e?"":"string"==typeof e?e:u(e,"readAsDataURL","")}function a(e){if(null==e||""===e)return null;if("string"!=typeof e)return u(e,"readAsText",null);{var r=e.indexOf(",");if(-1===r)return"";var o=e.slice(0,r),e=e.slice(r+1);if(!/;base64/i.test(o))return decodeURIComponent(e);let t=p(e),n="";for(let e=0;e<t.length;e+=1)n+="%"+("00"+t.charCodeAt(e).toString(16)).slice(-2);return decodeURIComponent(n)}}function u(n,r,o){return new Promise(function(t){let e=new FileReader;e.onloadend=function(){t(e.result)},e.onerror=function(){t(o)};try{e[r](n)}catch(e){t(o)}})}function c(u,c,t){let n=w.impl.urlCache.find(function(e){return e.url===u});if(n||(n={url:u,promise:null},w.impl.urlCache.push(n)),null===n.promise){let s=function(e){var t=w.impl.options.requestInterceptor;if("function"==typeof t)try{return t(u,{type:c,status:e})}catch(e){T("requestInterceptor threw:",e)}},a=function(e){return null!=e},e=s(void 0);if(a(e))return n.promise=Promise.resolve(e),n.promise;if(!1===t)return n.promise=Promise.resolve(null),n.promise;w.impl.options.cacheBust&&(u+=(/\?/.test(u)?"&":"?")+(new Date).getTime()),n.promise=new Promise(function(n){let o=new XMLHttpRequest;function i(e){l(e,!1),n(null)}function t(){r("Status:"+o.status+" while fetching resource: "+u)}function r(t){var e=s(o.status);a(e)?Promise.resolve(e).then(function(e){l(t,!0),n(e)},function(){T(t),i(t)}):(e=c===E.IMAGE||c===E.CSS_IMAGE?w.impl.options.imagePlaceholder:void 0)?(l(t,!0),n(e)):(T(t),i(t))}function l(e,t){var n=w.impl.options.onImageError;if("function"==typeof n)try{n({url:u,message:e,status:o.status,willUsePlaceholder:t})}catch(e){T("onImageError handler threw:",e)}}if(o.timeout=w.impl.options.httpTimeout,o.onerror=t,o.ontimeout=t,o.onloadend=function(){var e;o.readyState===XMLHttpRequest.DONE&&(0===(e=o.status)&&u.toLowerCase().startsWith("file://")||200<=e&&e<=300&&null!==o.response?(e=o.response)instanceof Blob?n(e):r("Response was not a Blob (got "+typeof e+") while fetching resource: "+u):t())},0<w.impl.options.useCredentialsFilters.length&&(w.impl.options.useCredentials=0<w.impl.options.useCredentialsFilters.filter(e=>0<=u.search(e)).length),w.impl.options.useCredentials&&(o.withCredentials=!0),w.impl.options.corsImg&&0===u.indexOf("http")&&-1===u.indexOf(window.location.origin)){var e="POST"===(w.impl.options.corsImg.method||"GET").toUpperCase()?"POST":"GET";o.open(e,(w.impl.options.corsImg.url||"").replace("#{cors}",u),!0);let t=!1,n=w.impl.options.corsImg.headers||{},r=(Object.keys(n).forEach(function(e){-1!==n[e].indexOf("application/json")&&(t=!0),o.setRequestHeader(e,n[e])}),(e=>{try{return JSON.parse(JSON.stringify(e))}catch(e){T("corsImg.data is missing or invalid",e),i("corsImg.data is missing or invalid")}})(w.impl.options.corsImg.data||""));Object.keys(r).forEach(function(e){"string"==typeof r[e]&&(r[e]=r[e].replace("#{cors}",u))}),o.responseType="blob",o.send(t?JSON.stringify(r):r)}else o.open("GET",u,!0),o.responseType="blob",o.send()})}return n.promise}function f(e){if(e.nodeType!==b||"function"!=typeof e.getBBox)return null;try{var t=e.getBBox();return t&&(t.width||t.height)?t:null}catch(e){return null}}function d(t,n){if(t.nodeType===b){let e=S(t).getPropertyValue(n);if("px"===e.slice(-2))return e=e.slice(0,-2),parseFloat(e)}return NaN}})(),c=(()=>{let r=/url\(\s*(["']?)((?:\\.|[^\\)])+)\1\s*\)/gm;return{inlineAll:function(t,r,o,i){return e(t)?Promise.resolve(t).then(n).then(function(e){return w.impl.options.filterUrls?e.filter(function(e){return w.impl.options.filterUrls(e,r)}):e}).then(function(e){let n=Promise.resolve(t);return e.forEach(function(t){n=n.then(function(e){return s(e,t,r,o,i)})}),n}):Promise.resolve(t)},shouldProcess:e,impl:{readUrls:n,inline:s,urlAsRegex:l}};function e(e){return-1!==e.search(r)}function n(e){for(var t,n=[];null!==(t=r.exec(e));)n.push(t[2]);return n.filter(function(e){return!g.isDataUrl(e)})}function l(e){return new RegExp(`url\\((["']?)(${g.escape(e)})\\1\\)`,"gm")}function s(n,r,t,o,i){return Promise.resolve(r).then(function(e){return t?g.resolveUrl(e,t):e}).then(function(e){return(i||g.getAndEncode)(e,o)}).then(function(e){var t=l(r);return n.replace(t,`url($1${e}$1)`)})}})(),e={resolveAll:function(){return t().then(function(e){return Promise.all(e.map(function(e){return e.resolve()}))}).then(function(e){return e.join("\n")})},impl:{readAll:t}};function t(){return Promise.resolve(g.asArray(document.styleSheets)).then(function(e){let r="function"==typeof w.impl.options.requestInterceptor,o={};return Promise.all(e.map(function(t){let n=t.href;if(!n||o[n])return t;o[n]=!0;var e=(e=>{try{return!e.cssRules}catch(e){return!0}})(t)&&(e=>{var t=w.impl.options.loadExternalStyleSheet;if("function"==typeof t)try{return!0===t(e)}catch(e){return T("domtoimage: loadExternalStyleSheet predicate threw:",e),!1}return!0===t})(n);return r||e?g.getResourceText(n,E.STYLESHEET,e).then(function(e){return e&&((e,t)=>{try{var n=document.implementation.createHTMLDocument(""),r=n.createElement("style");return r.appendChild(document.createTextNode((o=t,e.replace(/url\((['"]?)([^'")]+)\1\)/g,function(e,t,n){n=n.trim();return g.isDataUrl(n)||/^[a-z][a-z0-9+.-]*:/i.test(n)?e:`url(${t}${g.resolveUrl(n,o)}${t})`})))),n.body.appendChild(r),r.sheet}catch(e){return null}var o})(e,n)||t}):t}))}).then(function(e){let n=[];return e.forEach(function(t){var e=Object.getPrototypeOf(t);if(Object.prototype.hasOwnProperty.call(e,"cssRules"))try{g.asArray(t.cssRules||[]).forEach(n.push.bind(n))}catch(e){w.impl.options.ignoreCSSRuleErrors||T("domtoimage: Error while reading CSS rules from: "+t.href,e)}}),n}).then(function(e){return e.filter(function(e){return e.type===CSSRule.FONT_FACE_RULE}).filter(function(e){return c.shouldProcess(e.style.getPropertyValue("src"))})}).then(function(e){return e.map(t)});function t(t){return{resolve:function(){var e=(t.parentStyleSheet||{}).href;return c.inlineAll(t.cssText,e,E.FONT)},src:function(){return t.style.getPropertyValue("src")}}}}let n={inlineAll:function n(r){return g.isElement(r)?((o=r).style?(e=["background","background-image","mask","mask-image","-webkit-mask","-webkit-mask-image"].map(function(t){let e=o.style.getPropertyValue(t),n=o.style.getPropertyPriority(t);return e?c.inlineAll(e,void 0,E.CSS_IMAGE).then(function(e){o.style.setProperty(t,e,n)}):Promise.resolve()}),Promise.all(e).then(function(){return o})):Promise.resolve(o)).then(function(){return g.isHTMLImageElement(r)?i(r).inline():g.isSVGImageElement(r)?!(e=(t=r).getAttribute("href")||t.getAttributeNS(f,"href")||t.getAttribute("xlink:href"))||g.isDataUrl(e)?Promise.resolve(t):Promise.resolve(e).then(function(e){return(0,g.getAndEncode)(e,E.IMAGE)}).then(function(e){return e&&(t.setAttributeNS(f,"xlink:href",e),t.setAttribute("href",e)),t}):Promise.all(g.asArray(r.childNodes).map(n));var t,e}):Promise.resolve(r);var o,e},impl:{newImage:i}};function i(n){return{inline:function(t){return g.isDataUrl(n.src)?Promise.resolve():Promise.resolve(n.src).then(function(e){return(t||g.getAndEncode)(e,E.IMAGE)}).then(function(t){return new Promise(function(e){n.onload=e,n.onerror=e,n.src=t})})}}}let y={position:"fixed",left:"-9999px",visibility:"hidden"},v="http://www.w3.org/2000/svg",f="http://www.w3.org/1999/xlink",d="data:image/svg+xml;charset=utf-8,",r={warn:function(...e){console.warn(...e)},error:function(...e){console.error(...e)}},o={copyDefaultStyles:!0,imagePlaceholder:void 0,cacheBust:!1,useCredentials:!1,useCredentialsFilters:[],httpTimeout:3e4,styleCaching:"strict",corsImg:void 0,adjustClonedNode:void 0,filterStyles:void 0,filterUrls:void 0,adjustPseudoElement:void 0,onImageError:void 0,ensureShown:!1,pixelRatio:1,preserveScroll:!1,ignoreCSSRuleErrors:!1,requestInterceptor:void 0,loadExternalStyleSheet:!1,logger:r},E=Object.freeze({IMAGE:"image",CSS_IMAGE:"css-image",FONT:"font",STYLESHEET:"stylesheet"}),w={toSvg:a,toPng:function(e,t){return u(e,t).then(function(e){return e.toDataURL()})},toJpeg:function(e,t){return u(e,t).then(function(e){return e.toDataURL("image/jpeg",(t?t.quality:void 0)||1)})},toBlob:function(e,t){return u(e,t).then(g.canvasToBlob)},toPixelData:function(t,e){return u(t,e).then(function(e){return e.getContext("2d").getImageData(0,0,g.width(t),g.height(t)).data})},toCanvas:u,ResourceType:E,impl:{fontFaces:e,images:n,util:g,inliner:c,urlCache:[],options:{},copyOptions:function(t){Object.keys(o).forEach(function(e){w.impl.options[e]=(void 0===t[e]?o:t)[e]})},resetUrlCache:h}};function h(){w.impl.urlCache=[]}"object"==typeof exports&&"object"==typeof module?module.exports=w:m.domtoimage=w;let b=("undefined"!=typeof Node?Node.ELEMENT_NODE:void 0)||1,S=l("getComputedStyle"),p=l("atob");function l(e){return(void 0!==m?m[e]:void 0)||("undefined"!=typeof window?window[e]:void 0)||globalThis[e]}function P(...e){s("warn",e)}function T(...e){s("error",e)}function s(e,t){var n=w.impl.options.logger||r,e=n[e];"function"==typeof e&&e.apply(n,t)}function a(l,s){let i=w.impl.util.getWindow(l),o=(s=s||{},w.impl.copyOptions(s),[]);return C=[],i&&i.document?(()=>{var e=i.document;if(!e.fonts||!e.fonts.ready)return Promise.resolve();let t=w.impl.options.httpTimeout||3e4,n,r=Promise.resolve(e.fonts.ready).then(function(){return!1},function(){return!1}),o=new Promise(function(e){n=i.setTimeout(function(){e(!0)},t)});return Promise.race([r,o]).then(function(e){i.clearTimeout(n),e&&P("dom-to-image-more: timed out after "+t+"ms waiting for document fonts to finish loading (document.fonts.ready); rendering anyway — the output may have missing glyphs or fallback-font metrics.")})})().then(function(){var e=l;if(e.nodeType===b)return e;var t,n=e,r=e.parentNode;if(r)return t=document.createElement("span"),r.replaceChild(t,n),t.append(e),o.push({parent:r,child:n,wrapper:t}),t;throw new Error("Cannot render a non-element node that is not attached to a parent; wrap it in an element or attach it to the document first.")}).then(function(e){return function i(t,h,p,l){var e=h.filter;return t===A||g.isHTMLScriptElement(t)||g.isHTMLStyleElement(t)||g.isHTMLLinkElement(t)||null!==p&&e&&!e(t)?Promise.resolve():Promise.resolve(t).then(function(e){return g.isHTMLCanvasElement(e)?g.makeImage(e.toDataURL()):e.cloneNode(!1)}).then(function(e){return h.adjustClonedNode&&h.adjustClonedNode(t,e,!1),Promise.resolve(e)}).then(function(r){{var o=r,r=(r=t,g.isElementHostForOpenShadowRoot(r)?r.shadowRoot:r);let e=(e=>{if(g.isShadowSlotElement(e)){var t=e.assignedNodes();if(t&&0<t.length)return t}return e.childNodes})(r),n=Promise.resolve();if(0!==e.length){let t=S((r=r,g.isShadowRoot(r)?r.host:r));g.asArray(e).forEach(function(e){n=n.then(function(){return i(e,h,t,l).then(function(e){e&&o.appendChild(e)})})})}return n.then(function(){return o})}}).then(function(e){return h.adjustClonedNode&&h.adjustClonedNode(t,e,!0),Promise.resolve(e)}).then(function(e){return d=e,m=t,!g.isElement(d)||g.isShadowSlotElement(m)?Promise.resolve(d):Promise.resolve().then(function(){if(g.isHTMLImageElement(m)&&"function"==typeof m.decode&&!(m.complete&&0<m.naturalWidth))return m.decode().catch(function(){})}).then(function(){if(d.style){var e=m,t=d,r,l,n=S(e);if(n.cssText)t.style.cssText=n.cssText,(f=t.style).font=(o=n).font,f.fontFamily=o.fontFamily,f.fontFeatureSettings=o.fontFeatureSettings,f.fontKerning=o.fontKerning,f.fontSize=o.fontSize,f.fontStretch=o.fontStretch,f.fontStyle=o.fontStyle,f.fontVariant=o.fontVariant,f.fontVariantCaps=o.fontVariantCaps,f.fontVariantEastAsian=o.fontVariantEastAsian,f.fontVariantLigatures=o.fontVariantLigatures,f.fontVariantNumeric=o.fontVariantNumeric,f.fontVariationSettings=o.fontVariationSettings,f.fontWeight=o.fontWeight;else{{var s=h,a=e,u=n,c=p,f=t;let o=w.impl.options.copyDefaultStyles?((e,t)=>{var n,r=(e=>{var t=[];do{if(e.nodeType===b){var n=e.tagName;if(t.push(n),O.includes(n))break}}while(e=e.parentNode);return t})(t),e=("relaxed"!==e.styleCaching?r:r.filter((e,t,n)=>0===t||t===n.length-1)).join(">")+((n=t)&&n.hasAttribute?R.filter(function(e){return n.hasAttribute(e)}).map(function(e){return`[${e}]`}).join(""):"");if(N[e])return N[e];var o,i=r=((e,t)=>{let n=e.body;do{var r=t.pop(),r=e.createElement(r)}while(n.appendChild(r),n=r,0<t.length);return n.textContent="​",n})((o=(()=>{if(A)return A.contentWindow;t=document.characterSet||"UTF-8",e=(e=document.doctype)?(`<!DOCTYPE ${s(e.name)} ${s(e.publicId)} `+s(e.systemId)).trim()+">":"",(A=document.createElement("iframe")).id="domtoimage-sandbox-"+g.uid(),Object.assign(A.style,y),document.body.appendChild(A);var e,t,n=A,r="domtoimage-sandbox";try{return n.contentWindow.document.write(e+`<html><head><meta charset='${t}'><title>${r}</title></head><body></body></html>`),n.contentWindow}catch(e){}var o=document.createElement("meta");o.setAttribute("charset",t);try{var i=document.implementation.createHTMLDocument(r),l=(i.head.appendChild(o),e+i.documentElement.outerHTML);return n.setAttribute("srcdoc",l),n.contentWindow}catch(e){}return n.contentDocument.head.appendChild(o),n.contentDocument.title=r,n.contentWindow;function s(e){var t;return e?((t=document.createElement("div")).innerText=e,t.innerHTML):""}})()).document,r),l=t,s=(l&&l.hasAttribute&&R.forEach(function(e){l.hasAttribute(e)&&i.setAttribute(e,l.getAttribute(e))}),t=((e,t)=>{let n={},r=e.getComputedStyle(t),o=(g.asArray(r).forEach(function(e){n[e]="width"===e||"height"===e?"auto":r.getPropertyValue(e)}),t.parentElement),i;return o&&(i=e.getComputedStyle(o).getPropertyValue("font-size"),n[L]=n["font-size"]!==i),n})(o,r),r);do{var a=s.parentElement}while(null!==a&&a.removeChild(s),(s=a)&&"BODY"!==s.tagName);return N[e]=t})(s,a):{},i=f.style;g.asArray(u).forEach(function(e){var t,n,r;s.filterStyles&&!s.filterStyles(a,e)||(t=u.getPropertyValue(e),r=o[e],n=c?c.getPropertyValue(e):void 0,i.getPropertyValue(e))||(t!==r||c&&t!==n||"font-size"===e&&o[L])&&(r=u.getPropertyPriority(e),I(i,e,t,r))}),r=u,l=i,["top","right","bottom","left"].forEach(function(e){var t,n=`border-${e}-width`,e=r.getPropertyValue(`border-${e}-style`);e&&"none"!==e&&!l.getPropertyValue(n)&&(e=r.getPropertyValue(n))&&(t=r.getPropertyPriority(n),I(l,n,e,t))})}null===p&&(["inset-block","inset-block-start","inset-block-end"].forEach(e=>t.style.removeProperty(e)),["left","right","top","bottom"].forEach(e=>{t.style.getPropertyValue(e)&&t.style.setProperty(e,"0px")}))}o=S(m).getPropertyValue("visibility"),null===p?"visible"!==o&&d.style.setProperty("visibility","visible"):o===p.getPropertyValue("visibility")&&d.style.removeProperty("visibility")}var o}).then(function(){let a=g.uid();return Promise.all([":before",":after"].map(function(o){let i=S(m,o),l=i.getPropertyValue("content");if(""!==l&&"none"!==l){let t;if(h.adjustPseudoElement){var s=h.adjustPseudoElement(m,o,i);if(!1===s)return;s&&"object"==typeof s&&(t=s)}let e=d.getAttribute("class")||"",n=(d.setAttribute("class",e+" "+a),`.${a}:`+o),r=i.cssText?i.cssText+` content: ${l};`:g.asArray(i).map(function(e){return e+": "+i.getPropertyValue(e)+(i.getPropertyPriority(e)?" !important":"")}).join("; ")+";";return t&&(r+=Object.keys(t).map(function(e){return` ${e}: ${t[e]};`}).join("")),c.inlineAll(r,void 0,E.CSS_IMAGE).then(function(e){var t=document.createElement("style");t.appendChild(document.createTextNode(n+`{${e}}`)),d.appendChild(t)})}}))}).then(function(){g.isHTMLTextAreaElement(m)&&(d.innerHTML=m.value),g.isHTMLInputElement(m)&&d.setAttribute("value",m.value)}).then(function(){if(d.attributes&&d.removeAttribute){var t=[];for(let e=0;e<d.attributes.length;e+=1){var n=d.attributes[e].name;/["'=<>/\s]/.test(n)&&t.push(n)}t.forEach(function(e){d.removeAttribute(e)})}}).then(function(){if(h.preserveScroll&&d.style){var e=m.scrollLeft||0,t=m.scrollTop||0;if(0!==e||0!==t){d.style.overflow="hidden";let n=`translate(${-e}px, ${-t}px)`;g.asArray(d.children).forEach(function(e){var t;e.style&&(t=e.style.transform&&"none"!==e.style.transform?" "+e.style.transform:"",e.style.transform=n+t)})}}}).then(function(){if(g.isSVGElement(d)&&(d.setAttribute("xmlns",v),g.isSVGRectElement(d)&&["width","height"].forEach(function(e){var t=d.getAttribute(e);t&&d.style.setProperty(e,t)}),g.isSVGUseElement(d))){var e=m,n=e.getAttribute("href")||e.getAttributeNS(f,"href")||e.getAttribute("xlink:href");if(n&&"#"===n.charAt(0)){let t=n.slice(1);C.some(e=>e.id===t)||(n=e.ownerDocument.getElementById(t))&&((e=n.cloneNode(!0)).setAttribute("xmlns",v),C.push({id:t,node:e}))}}}).then(function(){var e;g.isElement(d)&&(()=>{var t=m.children||[];for(let e=0;e<t.length;e+=1)if("CAPTION"===t[e].tagName)return 1})()&&("table"!==(e=S(m).getPropertyValue("display"))&&"inline-table"!==e||(d.style.removeProperty("height"),d.style.removeProperty("block-size")))}).then(function(){g.isHTMLImageElement(d)&&(d.removeAttribute("loading"),m.srcset||m.sizes)&&(d.removeAttribute("srcset"),d.removeAttribute("sizes"),d.src=m.currentSrc||m.src)}).then(function(){return d});var d,m})}(e,s,null,i)}).then(function(e){if(0!==C.length){var o=document.createElementNS(v,"svg");o.setAttribute("xmlns",v),o.setAttribute("width","0"),o.setAttribute("height","0"),o.style.setProperty("position","absolute"),o.style.setProperty("width","0"),o.style.setProperty("height","0"),o.style.setProperty("overflow","hidden");let t=document.createElementNS(v,"defs"),n=(o.appendChild(t),new Set),r=(e.getAttribute("id")&&n.add(e.getAttribute("id")),e.querySelectorAll("[id]").forEach(function(e){n.add(e.getAttribute("id"))}),0);C.forEach(function(e){n.has(e.id)||(t.appendChild(e.node),r+=1)}),0<r&&e.insertBefore(o,e.firstChild)}return e}).then(s.disableEmbedFonts?Promise.resolve(l):x).then(s.disableInlineImages?Promise.resolve(l):M).then(function(e){e.style&&(e.style.margin="0"),s.bgcolor&&(e.style.backgroundColor=s.bgcolor),s.width&&(e.style.width=s.width+"px"),s.height&&(e.style.height=s.height+"px"),s.style&&Object.assign(e.style,s.style);let t=null;return"function"==typeof s.onclone&&(t=s.onclone(e)),Promise.resolve(t).then(function(){return e})}).then(function(n){if(g.isSVGElement(l)&&!g.isSVGSVGElement(l)){let e=n,t=u(e),r;try{r=l.getBBox()}catch(e){r={x:0,y:0,width:0,height:0}}finally{t()}e.removeAttribute("transform"),e.style.removeProperty("transform");let o=s.width||r.width,i=s.height||r.height;return Promise.resolve(e).then(function(e){return e.setAttribute("xmlns",v),(new XMLSerializer).serializeToString(e)}).then(a).then(g.escapeXhtml).then(function(e){var t=(g.isDimensionMissing(o)?"":` width="${o}"`)+(g.isDimensionMissing(i)?"":` height="${i}"`),n=`${r.x} ${r.y} ${r.width} `+r.height;return`<svg xmlns="${v}"${t} viewBox="${n}">${e}</svg>`}).then(function(e){return d+e})}{let e=u(n),r,o;try{r=s.width||g.width(l),o=s.height||g.height(l)}finally{e()}return Promise.resolve(n).then(function(e){return e.setAttribute("xmlns","http://www.w3.org/1999/xhtml"),(new XMLSerializer).serializeToString(e)}).then(a).then(g.escapeXhtml).then(function(e){var t=(g.isDimensionMissing(r)?' width="100%"':` width="${r}"`)+(g.isDimensionMissing(o)?' height="100%"':` height="${o}"`),n=(g.isDimensionMissing(r)?"":` width="${r}"`)+(g.isDimensionMissing(o)?"":` height="${o}"`);return`<svg xmlns="${v}"${n}><foreignObject${t}>${e}</foreignObject></svg>`}).then(function(e){return d+e})}}).finally(function(){for(;0<o.length;){var e=o.pop();try{e.parent.replaceChild(e.child,e.wrapper)}catch(e){T("domtoimage: failed to restore wrapped node",e)}}h(),C=[],A&&(A.remove(),A=null),V&&clearTimeout(V),V=setTimeout(()=>{V=null,N={}},2e4)}):Promise.reject(new Error("dom-to-image-more: a browser DOM is required (SSR)"));function a(e){return e.replace(/url\(&quot;([^]*?)&quot;\)/g,function(e,t){return 0<=t.indexOf("'")?e:`url('${t}')`})}function u(t){function e(){}if(!s.ensureShown)return e;var n=S(l);if("0"===n.getPropertyValue("opacity")&&t.style.setProperty("opacity","1"),"none"!==n.getPropertyValue("display"))return e;let r=l.style.getPropertyValue("display"),o=l.style.getPropertyPriority("display");return l.style.removeProperty("display"),"none"===S(l).getPropertyValue("display")&&(n=r&&"none"!==r?r:"revert",l.style.setProperty("display",n,"important")),function(){var e=S(l).getPropertyValue("display");t.style.setProperty("display","none"===e?"block":e),r?l.style.setProperty("display",r,o):l.style.removeProperty("display")}}}function u(i,l){return a(i,l=l||{}).then(g.makeImage).then(function(e){var t=(e=>{let t=l.width||g.width(e),n=l.height||g.height(e);g.isDimensionMissing(t)&&(t=g.isDimensionMissing(n)?300:2*n),g.isDimensionMissing(n)&&(n=t/2);var r,e=("number"==typeof l.scale?l.scale:1)*("number"==typeof l.pixelRatio?l.pixelRatio:1),o=(o=t,i=n,e=e,!(0<o&&0<i&&0<e)||e<=(r=Math.min(16384/o,16384/i,Math.sqrt(268435456/(o*i))))?e:(P("dom-to-image-more: the requested "+Math.round(o*e)+"×"+Math.round(i*e)+" canvas exceeds the browser limit; clamping the effective scale from "+e+" to "+r+". Capture detail may be reduced — render a smaller region or lower scale/pixelRatio."),r)),i=document.createElement("canvas");return i.width=t*o,i.height=n*o,l.bgcolor&&((e=i.getContext("2d")).fillStyle=l.bgcolor,e.fillRect(0,0,i.width,i.height)),{canvas:i,scale:o,width:t,height:n}})(i),n=t.canvas,r=t.scale,o=n.getContext("2d");return o.msImageSmoothingEnabled=!1,o.imageSmoothingEnabled=!1,e&&(o.scale(r,r),o.drawImage(e,0,0,t.width,t.height)),n})}let A=null,C=[];function x(n){return e.resolveAll().then(function(e){var t;return""!==e&&(t=document.createElement("style"),n.appendChild(t),t.appendChild(document.createTextNode(e))),n})}function M(e){return n.inlineAll(e).then(function(){return e})}function I(e,t,n,r){var o=0<=["background-clip"].indexOf(t);r?(e.setProperty(t,n,r),o&&e.setProperty("-webkit-"+t,n,r)):(e.setProperty(t,n),o&&e.setProperty("-webkit-"+t,n))}let L=Symbol("dtim-ua-relative-font-size"),V=null,N={},O=["ADDRESS","ARTICLE","ASIDE","BLOCKQUOTE","DETAILS","DIALOG","DD","DIV","DL","DT","FIELDSET","FIGCAPTION","FIGURE","FOOTER","FORM","H1","H2","H3","H4","H5","H6","HEADER","HGROUP","HR","LI","MAIN","NAV","OL","P","PRE","SECTION","SVG","TABLE","UL","math","svg","BODY","HEAD","HTML"],R=["href"]})(this);
+//# sourceMappingURL=dom-to-image-more.min.js.map</script>
+
+<script>
+/* ---------- Firemní data ---------- */
+const BIZ = {
+  name:'TA CHALUPA',
+  claim:'Chalupa u lesa na strání, co má velké poslání',
+  addr:'Prostřední Bečva 168, 756 56',
+  ico:'19694938',
+  dph:'Neplátce DPH',
+  tel:'+420 720 744 753',
+  tel2:'+420 732 123 723',
+  email:'ta.chalupa.knehyne@gmail.com',
+  web:'tachalupa.cz',
+  ig:'@tachalupa',
+  accDisp:'2784340044/3030',
+  bank:'Air Bank',
+  iban:'CZ4030300000002784340044'
+};
+
+/* ---------- Logo (hexagon, line-art) ---------- */
+const LOGO = `<svg viewBox="314.4 82.7 306.7 341.5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" fill-rule="evenodd">
+<path d="M 444.46,99.00 C 458.85,90.69 476.58,90.69 490.98,99.00 L 589.82,156.07 C 604.22,164.38 613.08,179.73 613.08,196.35 L 613.08,310.49 C 613.08,327.11 604.22,342.47 589.82,350.78 L 490.98,407.85 C 476.58,416.16 458.85,416.16 444.46,407.85 L 345.61,350.78 C 331.22,342.47 322.35,327.11 322.35,310.49 L 322.35,196.35 C 322.35,179.73 331.22,164.38 345.61,156.07 L 444.46,99.00 Z M 448.46,105.93 L 349.61,163.00 C 337.69,169.88 330.35,182.59 330.35,196.35 L 330.35,310.49 C 330.35,324.25 337.69,336.97 349.61,343.85 L 448.46,400.92 C 460.38,407.80 475.06,407.80 486.98,400.92 L 585.82,343.85 C 597.74,336.97 605.08,324.25 605.08,310.49 L 605.08,196.35 C 605.08,182.59 597.74,169.88 585.82,163.00 L 486.98,105.93 C 475.06,99.05 460.38,99.05 448.46,105.93 Z"/>
+<path d="M 387.26,266.04 L 363.77,266.04 C 362.49,266.04 361.31,265.34 360.70,264.21 C 360.08,263.09 360.13,261.72 360.83,260.64 L 382.18,227.47 L 372.14,227.47 C 370.88,227.47 369.72,226.79 369.10,225.69 C 368.48,224.60 368.49,223.25 369.14,222.17 L 388.63,189.66 L 382.31,189.66 C 380.97,189.66 379.74,188.89 379.16,187.68 C 378.58,186.47 378.74,185.03 379.58,183.98 L 407.98,148.49 C 408.66,147.64 409.70,147.16 410.79,147.18 C 411.88,147.20 412.89,147.73 413.54,148.61 L 439.59,184.09 C 440.37,185.16 440.49,186.57 439.89,187.74 C 439.29,188.92 438.09,189.66 436.77,189.66 L 430.95,189.66 L 448.52,216.46 L 465.96,202.35 C 467.25,201.30 469.10,201.31 470.38,202.36 L 487.27,216.15 L 504.97,189.16 L 499.14,189.16 C 497.83,189.16 496.62,188.42 496.02,187.24 C 495.43,186.06 495.54,184.65 496.32,183.59 L 522.38,148.10 C 523.02,147.22 524.04,146.70 525.13,146.67 C 526.22,146.65 527.25,147.14 527.93,147.99 L 556.33,183.47 C 557.17,184.52 557.34,185.96 556.75,187.17 C 556.17,188.39 554.94,189.16 553.60,189.16 L 547.29,189.16 L 566.77,221.66 C 567.42,222.75 567.44,224.09 566.82,225.19 C 566.19,226.29 565.03,226.96 563.77,226.96 L 554.53,226.96 L 575.12,260.19 C 575.79,261.27 575.82,262.62 575.20,263.73 C 574.58,264.84 573.41,265.53 572.14,265.53 L 547.69,265.53 L 563.14,278.16 C 564.64,279.38 564.86,281.59 563.64,283.09 C 562.42,284.58 560.21,284.80 558.71,283.58 L 545.75,272.99 L 545.75,346.97 C 545.75,348.91 544.19,350.47 542.25,350.47 L 393.02,350.47 C 391.09,350.47 389.52,348.91 389.52,346.97 L 389.52,273.21 L 376.51,283.75 C 375.00,284.96 372.80,284.73 371.58,283.23 C 370.37,281.73 370.60,279.52 372.10,278.31 L 387.26,266.04 Z M 434.92,227.47 L 390.51,227.47 L 370.19,259.04 L 395.91,259.04 L 434.92,227.47 Z M 500.49,226.96 L 539.12,258.53 L 565.86,258.53 L 546.29,226.96 L 500.49,226.96 Z M 536.42,265.37 L 468.15,209.58 L 396.52,267.55 L 396.52,343.47 L 474.16,343.47 L 474.16,295.42 C 474.16,293.48 475.73,291.92 477.66,291.92 L 507.62,291.92 C 509.56,291.92 511.12,293.48 511.12,295.42 L 511.12,343.47 L 538.75,343.47 L 538.75,267.27 L 536.62,265.53 L 536.42,265.53 L 536.42,265.37 Z M 481.16,298.92 L 504.12,298.92 L 504.12,343.47 L 481.16,343.47 Z M 525.32,155.92 L 506.06,182.16 L 546.32,182.16 L 525.32,155.92 Z M 513.34,189.16 L 493.58,219.28 L 494.42,219.96 L 557.59,219.96 L 539.13,189.16 L 513.34,189.16 Z M 396.79,189.66 L 396.24,190.58 L 378.32,220.47 C 378.32,220.47 378.32,220.47 378.32,220.47 L 441.49,220.47 L 442.33,219.79 L 422.58,189.66 L 396.79,189.66 Z M 410.59,156.43 L 389.60,182.66 L 429.86,182.66 L 410.59,156.43 Z"/>
+<path d="M 426.11,294.45 L 452.18,294.45 C 454.11,294.45 455.68,296.01 455.68,297.95 L 455.68,322.85 C 455.68,324.78 454.11,326.35 452.18,326.35 L 426.30,326.35 C 424.38,326.35 422.82,324.80 422.80,322.88 L 422.61,297.97 C 422.60,297.04 422.96,296.14 423.62,295.48 C 424.28,294.82 425.17,294.45 426.11,294.45 Z M 429.63,301.45 L 429.77,319.35 L 448.68,319.35 C 448.68,319.35 448.68,319.35 448.68,319.35 L 448.68,301.45 L 429.63,301.45 Z"/>
+</svg>`;
+document.getElementById('logoSlot').innerHTML = LOGO;
+
+/* ---------- Ceník ---------- */
+const PRICE = {
+  leto:  {small:650, big:620, label:'Léto'},
+  mimo:  {small:600, big:550, label:'Mimo sezónu'},
+  tyden: {small:570, big:530, label:'Týdenní (min. 5 nocí)'},
+  silvestr:{flat:15300, label:'Silvestr'}
+};
+const CLEAN=1000, DOG=250, CAUTION=5000;
+
+/* ---------- Stav ---------- */
+let type='faktura', mode='zaloha', pay='ucet', priceMode='rate';
+let userEditedDesc=false, userEditedRate=false, userEditedDep=false;
+
+/* ---------- Utils ---------- */
+const $=id=>document.getElementById(id);
+const czk=n=>Math.round(n).toLocaleString('cs-CZ').replace(/\u00A0/g,' ')+' Kč';
+const pad=n=>String(n).padStart(2,'0');
+function parseDate(s){ if(!s)return null; const p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function fmtDate(d){ return d? `${d.getDate()}. ${d.getMonth()+1}. ${d.getFullYear()}` : '—'; }
+function nights(){ const a=parseDate($('from').value), b=parseDate($('to').value);
+  if(!a||!b) return 0; const n=Math.round((b-a)/86400000); return n>0?n:0; }
+function persons(){ return Math.max(1, Math.min(17, +$('persons').value||1)); }
+
+function autoRate(){
+  const s=$('season').value, p=persons(), t=PRICE[s];
+  if(s==='silvestr') return t.flat;               // za objekt/den
+  return p<=12 ? t.small : t.big;
+}
+function refreshRate(force){
+  const s=$('season').value;
+  $('rateLabel').textContent = s==='silvestr' ? 'Cena za objekt / den (Kč)' : 'Cena za osobu / noc (Kč)';
+  if(force || !userEditedRate){ $('rate').value = autoRate(); }
+  const p=persons();
+  $('rateHint').textContent = s==='silvestr'
+    ? 'Silvestr: min. 3 noci, účtováno za celý objekt a den.'
+    : `Sazba pro ${p<=12?'1–12':'13–17'} osob dle sezóny.`;
+}
+
+/* ---------- Výpočet ---------- */
+function calc(){
+  const s=$('season').value, n=nights(), p=persons(), rate=+$('rate').value||0;
+  const baseGross = priceMode==='manual'
+    ? Math.max(0,+$('manualBase').value||0)
+    : (s==='silvestr' ? rate*n : rate*p*n);
+  const clean = $('cleanOn').checked ? CLEAN : 0;
+  const dogsN = Math.max(1,+$('dogs').value||1);
+  const dog = $('dogOn').checked ? DOG*dogsN*n : 0;
+  const grossSubtotal = baseGross + clean + dog; // celková cena pobytu před slevou
+  const discountPct = Math.max(0,Math.min(100,+$('discount').value||0));
+  const discountAmt = Math.round(grossSubtotal*discountPct/100);
+  const total = grossSubtotal - discountAmt;
+  const caution = $('depositCautionOn').checked ? CAUTION : 0;
+  return {s,n,p,rate,baseGross,clean,dog,dogsN,grossSubtotal,discountPct,discountAmt,caution,total};
+}
+
+/* ---------- Text položky ---------- */
+function defaultDesc(){
+  const c=calc(), a=parseDate($('from').value), b=parseDate($('to').value);
+  const term = (a&&b) ? ` ${fmtDate(a)} – ${fmtDate(b)}` : '';
+  if(mode==='zaloha')
+    return `Záloha na pobyt v TA CHALUPA${term}`;
+  return `Pobyt v TA CHALUPA${term}`;
+}
+function syncDesc(){ if(!userEditedDesc) $('descMain').value=defaultDesc(); }
+function payableAmount(c){
+  if(mode==='zaloha'){
+    if(userEditedDep){ return Math.max(0,+$('depAmt').value||0); }
+    return Math.round(c.total*0.5);
+  }
+  return c.total;
+}
+
+/* ---------- SPAYD QR ---------- */
+function spayd(amount){
+  let s=`SPD*1.0*ACC:${BIZ.iban}*CC:CZK*AM:${amount.toFixed(2)}*PT:IP`;
+  if(type==='faktura'){ const vs=($('invno').value||'').replace(/\D/g,''); if(vs) s+=`*X-VS:${vs}`; }
+  const msg = mode==='zaloha' ? 'Zaloha TA CHALUPA' : 'Pobyt TA CHALUPA';
+  s+=`*MSG:${msg}`;
+  return s;
+}
+function drawQR(amount){
+  const box=$('qrimg'); if(!box) return;
+  try{
+    const qr=qrcode(0,'M'); qr.addData(spayd(amount)); qr.make();
+    box.innerHTML=qr.createImgTag(4,0);
+  }catch(e){ box.innerHTML=''; }
+}
+
+/* ---------- Render náhledu ---------- */
+function render(){
+  refreshRate(false);
+  const c=calc();
+  // shrnutí v appce
+  $('sBase').textContent = c.baseGross?czk(c.baseGross):'—';
+  $('sDisc').textContent = c.discountAmt?`− ${czk(c.discountAmt)} (${c.discountPct}%)`:'—';
+  $('sDiscRow').classList.toggle('hidden', c.discountAmt<=0);
+  $('sClean').textContent = c.clean?czk(c.clean):'—';
+  $('sCleanRow').classList.toggle('hidden', !$('cleanOn').checked);
+  $('sDog').textContent = c.dog?czk(c.dog):'—';
+  $('sDogRow').classList.toggle('hidden', !$('dogOn').checked);
+  $('sTotal').textContent = c.total?czk(c.total):'—';
+
+  // nights hint
+  $('nightsHint').textContent = c.n
+    ? `${c.n} ${c.n===1?'noc':(c.n<5?'noci':'nocí')} · ${c.p} osob`
+    : 'Vyber termín — počet nocí i cena se dopočítají samy.';
+
+  // deposit field
+  $('depAmtWrap').classList.toggle('hidden', mode!=='zaloha');
+  if(mode==='zaloha' && !userEditedDep) $('depAmt').value = Math.round(c.total*0.5);
+
+  syncDesc();
+
+  const isFakt=type==='faktura', isNab=type==='nabidka';
+  $('invFields').classList.toggle('hidden', !isFakt);
+  const payable = payableAmount(c);
+  const showPay = !isNab;                       // u nabídky úhradu skryjeme
+  const showQR  = showPay && pay==='ucet';
+
+  // datumy
+  const today=new Date();
+  const due=new Date(today); due.setDate(due.getDate()+(+$('splat').value||7));
+  const a=parseDate($('from').value), b=parseDate($('to').value);
+  const vs=($('invno').value||'').replace(/\D/g,'');
+
+  const titleTxt = isFakt?'Faktura':(isNab?'Cenová nabídka':'Doklad o platbě');
+
+  // řádky položek
+  let rows='';
+  const desc=$('descMain').value||defaultDesc();
+  if(mode==='zaloha'){
+    const discNote = c.discountAmt ? ` (vč. slevy ${c.discountPct} %)` : '';
+    const pctActual = c.total>0 ? Math.round(payable/c.total*100) : 50;
+    rows+=`<tr><td>${esc(desc)}<div class="d2">Celková cena pobytu ${czk(c.total)}${discNote} · záloha ${pctActual} %</div></td>
+      <td class="r">1</td><td class="r">${czk(payable)}</td><td class="r">${czk(payable)}</td></tr>`;
+  }else{
+    if(priceMode==='manual'){
+      rows+=`<tr><td>${esc(desc)}<div class="d2">${c.p} osob · ${c.n} ${c.n===1?'noc':'nocí'}</div></td>
+        <td class="r">1</td><td class="r">${czk(c.baseGross)}</td><td class="r">${czk(c.baseGross)}</td></tr>`;
+    }else{
+      const unit = c.s==='silvestr' ? `${c.n} × ${czk(c.rate)}` : `${c.p} os × ${c.n} ${c.n===1?'noc':'nocí'} × ${czk(c.rate)}`;
+      rows+=`<tr><td>${esc(desc)}<div class="d2">${unit}</div></td>
+        <td class="r">${c.s==='silvestr'?c.n:c.p*c.n}</td><td class="r">${czk(c.rate)}</td><td class="r">${czk(c.baseGross)}</td></tr>`;
+    }
+    if(c.clean) rows+=`<tr><td>Závěrečný úklid</td><td class="r">1</td><td class="r">${czk(CLEAN)}</td><td class="r">${czk(c.clean)}</td></tr>`;
+    if(c.dog)   rows+=`<tr><td>Pes<div class="d2">${c.dogsN} × ${c.n} nocí × ${czk(DOG)}</div></td><td class="r">${c.dogsN*c.n}</td><td class="r">${czk(DOG)}</td><td class="r">${czk(c.dog)}</td></tr>`;
+  }
+
+  // total box
+  let totBox='';
+  if(mode==='zaloha'){
+    const doplatek = Math.max(0,c.total-payable);
+    const kauceNote = c.caution ? ` + kauce <b>${czk(c.caution)}</b>` : '';
+    totBox=`<div class="totline grand-l"><span>K úhradě (záloha)</span><span class="amt">${czk(payable)}</span></div>
+      <div class="rest">Doplatek při nástupu: <b>${czk(doplatek)}</b>${kauceNote}</div>`;
+  }else{
+    totBox=`<div class="totline"><span>Mezisoučet</span><span>${czk(c.grossSubtotal)}</span></div>`;
+    if(c.discountAmt) totBox+=`<div class="totline"><span>Sleva na pobyt (${c.discountPct} %)</span><span>− ${czk(c.discountAmt)}</span></div>`;
+    totBox+=`<div class="totline grand-l"><span>Celkem k úhradě</span><span class="amt">${czk(payable)}</span></div>`;
+    if(c.caution) totBox+=`<div class="rest">+ vratná kauce <b>${czk(c.caution)}</b> (mimo částku)</div>`;
+  }
+
+  // pay block
+  let payBlock='';
+  if(showPay && pay==='ucet'){
+    payBlock=`<div class="payblock">
+      <div class="paycol">
+        <div class="k">Úhrada převodem</div>
+        <div style="margin-top:6px">Číslo účtu</div>
+        <div class="big">${BIZ.accDisp}</div>
+        ${isFakt?`<div style="margin-top:6px">Variabilní symbol</div><div class="big">${vs||'—'}</div>`:''}
+        <div style="margin-top:6px">Částka</div>
+        <div class="big">${czk(payable)}</div>
+      </div>
+      ${showQR?`<div><div id="qrimg"></div><div class="qrcap">QR platba</div></div>`:''}
+    </div>`;
+  }else if(showPay && pay==='hotove'){
+    payBlock=`<div class="payblock"><div class="paycol"><div class="k">Úhrada v hotovosti</div>
+      <div style="margin-top:4px">Přijato hotově — ${czk(payable)}</div></div></div>`;
+  }
+
+  const meta = isFakt ? `<div class="meta">
+      <span>Číslo faktury: <b>${esc($('invno').value||'')}</b></span>
+      <span>Variabilní symbol: <b>${vs||'—'}</b></span>
+      <span>Datum vystavení: <b>${fmtDate(today)}</b></span>
+      <span>Datum splatnosti: <b>${fmtDate(due)}</b></span>
+    </div>` : (type==='doklad'? `<div class="meta"><span>Datum: <b>${fmtDate(today)}</b></span></div>`:'');
+
+  const stay = (a&&b)? `<div class="stay">Termín pobytu: <b>${fmtDate(a)} – ${fmtDate(b)}</b> · <b>${c.n} ${c.n===1?'noc':(c.n<5?'noci':'nocí')}</b> · <b>${c.p} osob</b></div>`:'';
+
+  const note = isFakt
+    ? `<div class="note">${BIZ.dph}. Fyzická osoba podnikající zapsaná v živnostenském rejstříku.${mode==='zaloha'?' Faktura na zálohovou platbu.':''}</div>`
+    : (isNab? `<div class="note">Cenová nabídka je nezávazná a informativní. Storno zálohy: 21 dní 0 %, 14 dní 50 %, 7 dní 100 %.</div>`
+             : `<div class="note">${BIZ.dph}.</div>`);
+
+  $('docPad').innerHTML = `
+    <div class="doc-top">
+      <div class="doc-brand">
+        <div class="doc-logo">${LOGO}</div>
+        <div><div class="bn">TA CHALUPA</div><div class="bs">${esc(BIZ.claim)}</div></div>
+      </div>
+      <div class="doc-title"><div class="t">${titleTxt}</div>${isFakt?`<div class="n">č. ${esc($('invno').value||'')}</div>`:''}</div>
+    </div>
+    <div class="rule"></div>
+    <div class="parties">
+      <div class="col">
+        <div class="eyebrow">Dodavatel</div>
+        <div class="nm">${BIZ.name}</div>
+        <div class="li">${BIZ.addr}</div>
+        <div class="li">IČ: ${BIZ.ico} · ${BIZ.dph}</div>
+        <div class="li">${BIZ.tel} · ${BIZ.email}</div>
+      </div>
+      <div class="col">
+        <div class="eyebrow">Odběratel</div>
+        <div class="nm">${esc($('cust').value||'—')}</div>
+        ${$('custAddr').value.trim() ? $('custAddr').value.trim().split('\n').map(l=>`<div class="li">${esc(l.trim())}</div>`).join('') : ''}
+      </div>
+    </div>
+    ${meta}
+    ${stay}
+    <table class="items">
+      <thead><tr><th>Popis</th><th class="r">Množ.</th><th class="r">Cena</th><th class="r">Celkem</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="totbox"><div class="inner">${totBox}</div></div>
+    ${payBlock}
+    ${note}
+    <div class="foot">
+      <span><b>${BIZ.web}</b></span><span>${BIZ.ig}</span><span>${BIZ.tel}</span><span>${BIZ.email}</span>
+    </div>`;
+
+  if(showQR) drawQR(payable);
+  if(typeof refreshCalRow==='function') refreshCalRow();
+}
+function esc(s){return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
+
+/* ---------- Segmenty ---------- */
+function bindSeg(id,setter){
+  $(id).addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
+    [...$(id).children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    setter(b.dataset.v); render(); });
+}
+bindSeg('segType',v=>type=v);
+bindSeg('segMode',v=>{ mode=v; userEditedDesc=false; userEditedDep=false; });
+bindSeg('segPay', v=>pay=v);
+bindSeg('segPriceMode', v=>{
+  priceMode=v;
+  $('rateWrap').classList.toggle('hidden', v!=='rate');
+  $('manualWrap').classList.toggle('hidden', v!=='manual');
+});
+$('manualBase').addEventListener('input', render);
+$('segDiscQuick').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  $('discount').value=b.dataset.v; userEditedDep=false; render();
+});
+$('discount').addEventListener('input',()=>{ userEditedDep=false; render(); });
+
+/* ---------- Steppery ---------- */
+function step(inp,d,min,max){ let v=(+$(inp).value||0)+d; v=Math.max(min,Math.min(max,v)); $(inp).value=v; }
+$('pPlus').onclick=()=>{step('persons',1,1,17);userEditedRate=false;render();};
+$('pMinus').onclick=()=>{step('persons',-1,1,17);userEditedRate=false;render();};
+$('dPlus').onclick=()=>{step('dogs',1,1,5);render();};
+$('dMinus').onclick=()=>{step('dogs',-1,1,5);render();};
+
+/* ---------- Inputy ---------- */
+['cust','custAddr','from','to','persons','season','cleanOn','dogOn','dogs','depositCautionOn','splat'].forEach(id=>{
+  $(id).addEventListener('input',()=>{ if(id==='persons'||id==='season'){userEditedRate=false;} render(); });
+  $(id).addEventListener('change',render);
+});
+$('rate').addEventListener('input',()=>{userEditedRate=true;render();});
+$('descMain').addEventListener('input',()=>{userEditedDesc=true;render();});
+$('depAmt').addEventListener('input',()=>{userEditedDep=true;render();});
+$('invno').addEventListener('input',render);
+$('invPlus').onclick=()=>{ const m=($('invno').value||'').match(/(\d+)(\D*)$/);
+  if(m){ const num=String(+m[1]+1).padStart(m[1].length,'0'); $('invno').value=$('invno').value.replace(/(\d+)(\D*)$/,num+m[2]); }
+  saveState(); render(); };
+
+/* ---------- Perzistence ---------- */
+const LS={inv:'tch_invno',splat:'tch_splat',ibx:'tch_ibx'};
+function saveState(){ try{ localStorage.setItem(LS.inv,$('invno').value); localStorage.setItem(LS.splat,$('splat').value);}catch(e){} }
+function loadState(){ try{
+  const i=localStorage.getItem(LS.inv); if(i)$('invno').value=i;
+  const s=localStorage.getItem(LS.splat); if(s)$('splat').value=s;
+}catch(e){} }
+['invno','splat'].forEach(id=>$(id).addEventListener('change',saveState));
+
+/* ---------- Export obrázku ---------- */
+async function makePNG(scale){
+  const node=$('doc');
+  const w=node.offsetWidth, h=node.offsetHeight;
+  return await domtoimage.toPng(node,{
+    width:w*scale, height:h*scale, bgcolor:'#FBFAF6',
+    style:{transform:`scale(${scale})`,transformOrigin:'top left'}
+  });
+}
+$('btnSend').onclick=async()=>{
+  const btn=$('btnSend'); const old=btn.textContent; btn.textContent='Generuji…'; btn.disabled=true;
+  try{
+    const url=await makePNG(2);
+    const blob=await (await fetch(url)).blob();
+    const fname=(type==='faktura'?`faktura-${($('invno').value||'').replace(/\D/g,'')}`:type)+'-tachalupa.png';
+    const file=new File([blob],fname,{type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'TA CHALUPA',text:$('descMain').value||'TA CHALUPA'});
+    }else{
+      const a=document.createElement('a'); a.href=url; a.download=fname; a.click();
+    }
+  }catch(e){ alert('Nepodařilo se vytvořit obrázek: '+e.message); }
+  btn.textContent=old; btn.disabled=false;
+  if(type==='faktura' && $('from').value && $('to').value){
+    try{ downloadICS(currentRecord()); }catch(e){ console.warn('ICS export selhal',e); }
+  }
+  if(dirty) showToast();
+};
+$('btnPrint').onclick=async()=>{
+  const btn=$('btnPrint'); const old=btn.textContent; btn.textContent='Připravuji…'; btn.disabled=true;
+  try{
+    const node=$('doc'); const ratio=node.offsetHeight/node.offsetWidth;
+    const url=await makePNG(2.5);
+    const w=window.open('','_blank');
+    w.document.write(`<html><head><title>TA CHALUPA</title><style>
+      @page{size:${ratio>1.35?'A4 portrait':'A4'};margin:14mm}
+      html,body{margin:0}img{width:100%;display:block}
+    </style></head><body><img src="${url}" onload="setTimeout(()=>{window.print()},250)"></body></html>`);
+    w.document.close();
+  }catch(e){ alert('Tisk se nezdařil: '+e.message); }
+  btn.textContent=old; btn.disabled=false;
+  if(dirty) showToast();
+};
+
+/* ---------- Server: Netlify funkce /api/zaznamy + Netlify Blobs (historie napříč zařízeními) ---------- */
+const DEMO=false; /* v náhledu v chatu se přepíná na true – data pak jen v prohlížeči */
+const API='/api/zaznamy';
+const LS_PIN='tch_pin';
+let cloudRecords=[];
+let serverState='idle';   // idle | ok | nopin | error
+let pinMem='';
+
+function todayLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function loadPin(){ try{ return localStorage.getItem(LS_PIN)||pinMem; }catch(e){ return pinMem; } }
+function savePin(p){ pinMem=p; try{ localStorage.setItem(LS_PIN,p); }catch(e){} }
+function clearPin(){ pinMem=''; try{ localStorage.removeItem(LS_PIN); }catch(e){} }
+
+/* okno na zadání hesla (jen když je potřeba, ne při otevření appky) */
+let pinPrompt=null;
+function askPin(msg){
+  if(pinPrompt) return pinPrompt;
+  pinPrompt=new Promise(resolve=>{
+    $('pinErr').textContent=msg||'';
+    $('pinInput').value='';
+    $('pinModal').classList.remove('hidden');
+    setTimeout(()=>$('pinInput').focus(),60);
+    const done=v=>{ $('pinModal').classList.add('hidden'); $('pinOk').onclick=null; $('pinCancel').onclick=null; $('pinInput').onkeydown=null; pinPrompt=null; resolve(v); };
+    $('pinOk').onclick=()=>{ const v=$('pinInput').value.trim(); if(!v){ $('pinErr').textContent='Zadej heslo.'; return; } done(v); };
+    $('pinCancel').onclick=()=>done(null);
+    $('pinInput').onkeydown=e=>{ if(e.key==='Enter') $('pinOk').onclick(); };
+  });
+  return pinPrompt;
+}
+function apiError(code,msg){ const e=new Error(msg); e.code=code; return e; }
+
+async function apiFetch(method,path,body,opts={}){
+  if(DEMO) return demoApi(method,path,body);
+  let pin=loadPin();
+  for(let attempt=0; attempt<3; attempt++){
+    if(!pin){
+      if(opts.silent) throw apiError('NOPIN','Chybí heslo.');
+      pin=await askPin(attempt?'Špatné heslo, zkus to znovu.':'');
+      if(!pin) throw apiError('NOPIN','Bez hesla nejde historii ukládat ani načítat.');
+    }
+    let res;
+    try{
+      res=await fetch(API+path,{method,cache:'no-store',
+        headers:{'content-type':'application/json','x-pin':pin},
+        body: body!==undefined ? JSON.stringify(body) : undefined});
+    }catch(e){ throw apiError('NET','Server není dostupný (jsi online?).'); }
+    let data=null; try{ data=await res.json(); }catch(e){}
+    if(res.status===401){ clearPin(); pin=''; continue; }
+    if(!data) throw apiError('NOAPI','Server nevrací data. Je appka nasazená z GitHubu i se složkou netlify?');
+    if(res.status<500) savePin(pin);
+    if(!res.ok) throw apiError('HTTP', data.error||('Chyba serveru ('+res.status+')'));
+    return data;
+  }
+  throw apiError('NOPIN','Špatné heslo.');
+}
+
+function setCloudNote(msg,withBtn){
+  $('cloudNote').innerHTML = esc(msg||'') + (withBtn?`<div style="margin-top:8px"><button class="btn cal" id="btnUnlock" type="button" style="max-width:220px;margin:0 auto">Zadat heslo</button></div>`:'');
+}
+let refreshing=false;
+async function refreshRecords(interactive){
+  if(refreshing) return; refreshing=true;
+  try{
+    const data=await apiFetch('GET','',undefined,{silent:!interactive});
+    cloudRecords=Array.isArray(data.records)?data.records:[];
+    serverState='ok'; setCloudNote('');
+  }catch(e){
+    if(e.code==='NOPIN'){ serverState='nopin'; setCloudNote('Historie je uložená na serveru. Zadej heslo a načte se.',true); }
+    else{ serverState='error'; setCloudNote(e.message); }
+  }finally{ refreshing=false; renderPrehled(); }
+}
+async function saveRecordToCloud(rec){
+  const data=await apiFetch('POST','',rec);
+  cloudRecords=[data.record,...cloudRecords.filter(r=>r.id!==data.record.id)];
+  serverState='ok'; setCloudNote(''); renderPrehled();
+  refreshRecords(false);           // dotáhne i záznamy z ostatních zařízení
+}
+async function deleteRecordCloud(id){
+  await apiFetch('DELETE','/'+id);
+  cloudRecords=cloudRecords.filter(r=>r.id!==id); renderPrehled();
+}
+async function togglePaid(id,paid){
+  const data=await apiFetch('PATCH','/'+id,{paid});
+  cloudRecords=cloudRecords.map(r=>r.id===id?data.record:r); renderPrehled();
+}
+
+/* záloha / obnova dat (JSON) */
+async function downloadBackup(){
+  try{
+    const data=await apiFetch('GET','',undefined,{});
+    cloudRecords=Array.isArray(data.records)?data.records:[]; renderPrehled();
+    const payload={app:'tachalupa',exportedAt:new Date().toISOString(),records:cloudRecords};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`tachalupa-zaloha-${todayLocal()}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ alert('Záloha se nepovedla: '+e.message); }
+}
+async function restoreBackup(file){
+  try{
+    let data; try{ data=JSON.parse(await file.text()); }catch(e){ throw new Error('Soubor není platná záloha (JSON).'); }
+    const records=Array.isArray(data)?data:(data&&data.records);
+    if(!Array.isArray(records)) throw new Error('V souboru nejsou žádné záznamy.');
+    if(!confirm(`Obnovit ${records.length} záznamů ze zálohy?\nStávající záznamy se nesmažou, shodné se přepíšou.`)) return;
+    const r=await apiFetch('POST','/import',{records});
+    await refreshRecords(false);
+    alert(`Obnoveno: ${r.imported}`+(r.skipped?`, přeskočeno: ${r.skipped}`:'')+'.');
+  }catch(e){ alert('Obnova se nepovedla: '+e.message); }
+}
+
+/* ---------- Režim NÁHLED (jen ukázková verze v chatu; v ostré appce DEMO=false) ---------- */
+const DEMO_KEY='tch_demo_records';
+let demoMem=null;
+function demoSeed(){
+  const d=n=>{ const x=new Date(); x.setDate(x.getDate()+n); return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`; };
+  const base={type:'faktura',mode:'zaloha',pay:'ucet',season:'mimo',customerAddr:'',discountPct:0,desc:'Záloha na pobyt v TA CHALUPA',issuedAt:todayLocal()};
+  const now=Date.now();
+  return [
+    {...base,id:'demo-3',customer:'Ukázka – Dvořákovi',stayFrom:d(30),stayTo:d(33),persons:6,nights:3,total:12600,payable:6300,invoiceNo:'2026003',paid:false,createdAt:new Date(now-1000).toISOString()},
+    {...base,id:'demo-2',customer:'Ukázka – Novákovi',stayFrom:d(12),stayTo:d(15),persons:8,nights:3,total:16000,payable:8000,invoiceNo:'2026002',paid:true,createdAt:new Date(now-2000).toISOString()},
+    {...base,id:'demo-1',customer:'Ukázka – Svobodovi',mode:'pronajem',stayFrom:d(-10),stayTo:d(-7),persons:4,nights:3,total:8500,payable:8500,invoiceNo:'2026001',paid:true,createdAt:new Date(now-3000).toISOString()}
+  ];
+}
+function demoLoad(){
+  if(demoMem) return demoMem;
+  try{ const t=localStorage.getItem(DEMO_KEY); if(t) demoMem=JSON.parse(t); }catch(e){}
+  return demoMem||(demoMem=demoSeed());
+}
+function demoSave(){ try{ localStorage.setItem(DEMO_KEY,JSON.stringify(demoMem)); }catch(e){} }
+async function demoApi(method,path,body){
+  const list=demoLoad();
+  if(method==='GET') return {records:[...list].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))};
+  if(method==='POST' && path===''){
+    const rec={...body,id:'demo-'+Math.random().toString(36).slice(2,10),createdAt:new Date().toISOString()};
+    list.unshift(rec); demoSave(); return {record:rec};
+  }
+  if(method==='POST' && path==='/import'){
+    let n=0; for(const r of (body.records||[])){ if(!r||typeof r!=='object') continue; const i=list.findIndex(x=>x.id===r.id);
+      if(i>=0) list[i]=r; else list.push({...r,id:r.id||('demo-'+Math.random().toString(36).slice(2,10)),createdAt:r.createdAt||new Date().toISOString()}); n++; }
+    demoSave(); return {imported:n,skipped:0};
+  }
+  const id=path.slice(1), i=list.findIndex(r=>r.id===id);
+  if(i<0) throw new Error('Záznam neexistuje.');
+  if(method==='PATCH'){ list[i]={...list[i],paid:!!(body&&body.paid)}; demoSave(); return {record:list[i]}; }
+  if(method==='DELETE'){ list.splice(i,1); demoSave(); return {ok:true}; }
+  throw new Error('Nepodporovaná operace.');
+}
+if(DEMO){
+  const b=document.createElement('div'); b.className='demo-banner';
+  b.textContent='NÁHLED – historie a stavy plateb se ukládají jen v tomto prohlížeči. Ostrá verze běží na tvém Netlify a ukládá na server.';
+  const w=document.querySelector('.wrap'); w.insertBefore(b,w.firstChild);
+}
+
+/* ---------- Uložit do historie + připomenutí ---------- */
+let dirty=true;
+function updateSaveBtnUI(){
+  const b=$('btnSave');
+  if(dirty){ b.classList.remove('done'); b.textContent='💾 Uložit do historie'; }
+  else{ b.classList.add('done'); b.textContent='✓ Uloženo do historie'; }
+}
+new MutationObserver(()=>{ dirty=true; updateSaveBtnUI(); }).observe($('docPad'),{childList:true,subtree:true,characterData:true});
+
+function currentRecord(){
+  const c=calc();
+  const payable=payableAmount(c);
+  return {
+    type, mode, pay,
+    customer: $('cust').value||'',
+    customerAddr: $('custAddr').value||'',
+    stayFrom: $('from').value||null,
+    stayTo: $('to').value||null,
+    persons: c.p, nights: c.n, season: c.s,
+    total: c.total, payable,
+    discountPct: c.discountPct||0,
+    invoiceNo: type==='faktura' ? ($('invno').value||'') : null,
+    desc: $('descMain').value||'',
+    issuedAt: todayLocal(),
+    dueAt: type==='faktura' ? dueLocal() : null,
+    paid: false
+  };
+}
+let toastTimer=null;
+function showToast(){ $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').classList.remove('show'),7000); }
+function hideToast(){ $('toast').classList.remove('show'); clearTimeout(toastTimer); }
+
+async function doSave(){
+  const btn=$('btnSave'); const old=btn.textContent; btn.disabled=true; btn.textContent='Ukládám…';
+  try{
+    await saveRecordToCloud(currentRecord());
+    dirty=false; updateSaveBtnUI(); hideToast();
+  }catch(e){
+    alert('Nepodařilo se uložit do historie: '+e.message);
+    updateSaveBtnUI();
+  }
+  btn.disabled=false;
+}
+$('btnSave').addEventListener('click',doSave);
+$('toastSave').addEventListener('click',doSave);
+
+/* ---------- Kalendář: .ics soubor + odkaz do Google kalendáře (pro tebe, ne pro zákazníka) ---------- */
+function icsEscape(s){ return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;'); }
+function calSummaryDesc(rec){
+  const summary = `Rezervace: ${rec.customer||'host'} (${rec.persons} os.)`;
+  const desc = [
+    `Termín: ${(rec.stayFrom||'').split('-').reverse().join('.')} – ${(rec.stayTo||'').split('-').reverse().join('.')}`,
+    `${rec.nights} nocí, ${rec.persons} osob`,
+    `Celková cena: ${czk(rec.total)}`,
+    rec.mode==='zaloha' ? `Záloha k úhradě: ${czk(rec.payable)}` : `K úhradě: ${czk(rec.payable)}`,
+    rec.invoiceNo ? `Faktura č. ${rec.invoiceNo}` : ''
+  ].filter(Boolean).join('\n');
+  return {summary, desc};
+}
+function buildICS(rec){
+  const {summary, desc} = calSummaryDesc(rec);
+  const uid = 'tch-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'@tachalupa.cz';
+  const dtstamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const d1=(rec.stayFrom||'').replace(/-/g,''), d2=(rec.stayTo||'').replace(/-/g,'');
+  return [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TA CHALUPA//Rezervace//CS','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${dtstamp}`,
+    `DTSTART;VALUE=DATE:${d1}`,
+    `DTEND;VALUE=DATE:${d2}`,
+    `SUMMARY:${icsEscape(summary)}`,
+    `DESCRIPTION:${icsEscape(desc)}`,
+    `LOCATION:${icsEscape(BIZ.addr)}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+}
+function downloadICS(rec){
+  if(!rec.stayFrom || !rec.stayTo) return;
+  const blob=new Blob([buildICS(rec)],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const fname=`rezervace-${(rec.customer||'host').replace(/[^a-z0-9]+/gi,'-')}-${rec.stayFrom}.ics`;
+  const a=document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+function googleCalUrl(rec){
+  const {summary, desc} = calSummaryDesc(rec);
+  const d1=(rec.stayFrom||'').replace(/-/g,''), d2=(rec.stayTo||'').replace(/-/g,'');
+  const q=new URLSearchParams({action:'TEMPLATE',text:summary,dates:`${d1}/${d2}`,details:desc,location:BIZ.addr});
+  return `https://calendar.google.com/calendar/render?${q.toString()}`;
+}
+function refreshCalRow(){ $('calRow').classList.toggle('hidden', nights()<=0 || !$('from').value || !$('to').value); }
+$('btnICS').addEventListener('click',()=>downloadICS(currentRecord()));
+$('btnGCal').addEventListener('click',()=>window.open(googleCalUrl(currentRecord()),'_blank'));
+
+/* ---------- Přehled: měsíční filtr, obraty, platby, kdo přijede ---------- */
+const MONTHS=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+let viewMonth = new Date(); viewMonth.setDate(1);
+function monthKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; }
+function fmtShort(s){ if(!s) return '—'; const [y,m,d]=s.split('-'); return `${+d}.${+m}.`; }
+
+function renderHistory(){
+  $('mLabel').textContent = `${MONTHS[viewMonth.getMonth()]} ${viewMonth.getFullYear()}`;
+  const mk=monthKey(viewMonth);
+  const items = cloudRecords.filter(r=> (r.issuedAt||'').slice(0,7)===mk );
+  const inv = items.filter(r=>r.type!=='nabidka');   // cenová nabídka se do obratu a plateb nepočítá
+  const invoiced = inv.reduce((s,r)=>s+(r.payable||0),0);
+  const received = inv.filter(r=>r.paid).reduce((s,r)=>s+(r.payable||0),0);
+  const unpaid = inv.filter(r=>!r.paid).length;
+  $('statInvoiced').textContent = czk(invoiced);
+  $('statReceived').textContent = czk(received);
+  $('statCount').textContent = inv.length;
+  $('statUnpaid').textContent = unpaid;
+  if(!items.length){
+    $('histList').innerHTML = `<div class="hist-empty">Za tento měsíc zatím nic uloženo.</div>`;
+    return;
+  }
+  $('histList').innerHTML = items.map(r=>{
+    const badge = r.type==='faktura'?'Faktura':(r.type==='nabidka'?'Nabídka':'Doklad');
+    const dt = r.stayFrom ? `${fmtShort(r.stayFrom)} – ${fmtShort(r.stayTo)}` : fmtShort(r.issuedAt);
+    return `<div class="hist-item">
+      <div class="hist-row1"><div class="nm">${esc(r.customer||'—')}</div><div class="hist-amt">${czk(r.payable||0)}</div></div>
+      <div class="hist-row2">
+        <span class="hist-badge">${badge}</span>
+        <span class="dt">${dt}${r.nights?` · ${r.nights} nocí`:''}</span>
+        <button class="pay-badge ${r.paid?'paid':'unpaid'}" data-pay="${r.id}">${r.paid?'✓ Zaplaceno':'Nezaplaceno'}</button>
+        <button class="hist-del" data-id="${r.id}" title="Smazat">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderUpcoming(){
+  const today = todayLocal();
+  const items = cloudRecords
+    .filter(r=>r.stayFrom && r.stayFrom>=today)
+    .sort((a,b)=> (a.stayFrom||'').localeCompare(b.stayFrom||''))
+    .slice(0,15);
+  if(!items.length){
+    $('upcList').innerHTML = `<div class="hist-empty">Žádné nadcházející pobyty.</div>`;
+    return;
+  }
+  $('upcList').innerHTML = items.map(r=>`<div class="hist-item">
+      <div class="hist-row1"><div class="nm">${esc(r.customer||'—')}</div>
+        <button class="pay-badge ${r.paid?'paid':'unpaid'}" data-pay="${r.id}">${r.paid?'✓ Zaplaceno':'Nezaplaceno'}</button>
+      </div>
+      <div class="hist-row2"><span class="dt">${fmtShort(r.stayFrom)} – ${fmtShort(r.stayTo)}${r.nights?` · ${r.nights} nocí`:''}${r.persons?` · ${r.persons} os.`:''}</span></div>
+    </div>`).join('');
+}
+
+/* ---------- Hlídání plateb ---------- */
+function dayNum(str){ const [y,m,d]=str.split('-').map(Number); return Math.round(Date.UTC(y,m-1,d)/86400000); }
+function addDaysStr(str,n){ const t=new Date((dayNum(str)+n)*86400000); return `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}-${pad(t.getUTCDate())}`; }
+function dueLocal(){ return addDaysStr(todayLocal(), +$('splat').value||7); }
+function dnu(n){ return `${n} ${n===1?'den':(n<5?'dny':'dní')}`; }
+/* level 3 = po splatnosti, 2 = přijíždí do týdne a nezaplaceno, 1 = splatné do 3 dnů; n = řazení uvnitř úrovně */
+function watchInfo(r,today){
+  if(r.paid || r.type==='nabidka') return null;
+  const t=dayNum(today);
+  const due = r.dueAt || (r.issuedAt ? addDaysStr(r.issuedAt,7) : null);   // starší záznamy bez splatnosti: vystavení + 7 dní
+  if(due){ const od=t-dayNum(due); if(od>0) return {level:3,n:od,label:`po splatnosti ${dnu(od)}`}; }
+  if(r.stayFrom){ const a=dayNum(r.stayFrom)-t; if(a>=0 && a<=7) return {level:2,n:-a,label:a===0?'přijíždí dnes, nezaplaceno':`přijíždí za ${dnu(a)}, nezaplaceno`}; }
+  if(due){ const left=dayNum(due)-t; if(left<=3) return {level:1,n:-left,label:left===0?'splatné dnes':`splatné za ${dnu(left)}`}; }
+  return null;
+}
+let watchCounts={overdue:0,arriving:0};
+function updateWatchBanner(){
+  const onDoklad=!$('tabDoklad').classList.contains('hidden');
+  const parts=[]; if(watchCounts.overdue) parts.push(`${watchCounts.overdue} po splatnosti`); if(watchCounts.arriving) parts.push(`${watchCounts.arriving} přijíždí do týdne bez zaplacení`);
+  $('watchBanner').textContent = parts.length ? '⚠ Nezaplaceno: '+parts.join(' · ')+'  →  otevřít Přehled' : '';
+  $('watchBanner').classList.toggle('hidden', !parts.length || !onDoklad || serverState!=='ok');
+}
+function renderWatch(){
+  const today=todayLocal();
+  const items=cloudRecords.map(r=>({r,w:watchInfo(r,today)})).filter(x=>x.w).sort((a,b)=>b.w.level-a.w.level||b.w.n-a.w.n);
+  watchCounts={overdue:items.filter(x=>x.w.level===3).length, arriving:items.filter(x=>x.w.level===2).length};
+  $('watchList').innerHTML = items.length ? items.map(({r,w})=>`<div class="hist-item">
+      <div class="hist-row1"><div class="nm">${esc(r.customer||'—')}</div><div class="hist-amt">${czk(r.payable||0)}</div></div>
+      <div class="hist-row2"><span class="watch-tag w${w.level}">${w.label}</span>
+        <span class="dt">${r.invoiceNo?esc(r.invoiceNo)+' · ':''}${r.stayFrom?fmtShort(r.stayFrom)+' – '+fmtShort(r.stayTo):''}</span>
+        <button class="pay-badge unpaid" data-pay="${r.id}">Nezaplaceno</button></div>
+    </div>`).join('')
+    : `<div class="hist-empty">${serverState==='ok'?'Vše v pořádku – žádná nezaplacená faktura po splatnosti ani blížící se příjezd bez platby.':'Hlídání se zapne po načtení historie.'}</div>`;
+  const n=watchCounts.overdue+watchCounts.arriving;
+  $('tabbar').children[1].innerHTML='Přehled'+(n?`<span class="tab-badge">${n}</span>`:'');
+  updateWatchBanner();
+}
+
+function renderPrehled(){ renderHistory(); renderUpcoming(); renderWatch(); }
+
+$('tabPrehled').addEventListener('click', async e=>{
+  const pb=e.target.closest('.pay-badge');
+  if(pb){
+    const id=pb.dataset.pay; const rec=cloudRecords.find(r=>r.id===id); if(!rec) return;
+    pb.disabled=true;
+    try{ await togglePaid(id,!rec.paid); }
+    catch(err){ alert('Nepodařilo se změnit stav platby: '+err.message); pb.disabled=false; }
+    return;
+  }
+  const del=e.target.closest('.hist-del');
+  if(del){
+    if(confirm('Smazat tento záznam z historie?')){ try{ await deleteRecordCloud(del.dataset.id); }catch(err){ alert('Smazání se nezdařilo: '+err.message); } }
+  }
+});
+$('mPrev').addEventListener('click',()=>{ viewMonth.setMonth(viewMonth.getMonth()-1); renderHistory(); });
+$('mNext').addEventListener('click',()=>{ viewMonth.setMonth(viewMonth.getMonth()+1); renderHistory(); });
+
+/* ---------- Přepínání záložek ---------- */
+$('tabbar').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  [...$('tabbar').children].forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  const tab=b.dataset.tab;
+  $('tabDoklad').classList.toggle('hidden', tab!=='doklad');
+  $('tabPrehled').classList.toggle('hidden', tab!=='prehled');
+  if(tab==='prehled') refreshRecords(!DEMO && !loadPin());
+  updateWatchBanner();
+});
+$('watchBanner').addEventListener('click',()=>$('tabbar').children[1].click());
+
+/* načtení historie při startu + obnovení po návratu do appky */
+if(DEMO || loadPin()) refreshRecords(false);
+else{ serverState='nopin'; setCloudNote('Historie je uložená na serveru. Zadej heslo a načte se.',true); renderPrehled(); }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && loadPin()) refreshRecords(false); });
+setInterval(()=>{ if(!document.hidden && loadPin()) refreshRecords(false); },60000);
+$('cloudNote').addEventListener('click',e=>{ if(e.target.closest('#btnUnlock')) refreshRecords(true); });
+$('btnBackup').addEventListener('click',downloadBackup);
+$('btnRestore').addEventListener('click',()=>$('restoreFile').click());
+$('restoreFile').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) restoreBackup(f); });
+
+/* ---------- Install banner ---------- */
+let deferredPrompt=null;
+const standalone = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone;
+function showInstall(txt,btn){ if(standalone||DEMO)return; try{if(localStorage.getItem(LS.ibx))return;}catch(e){}
+  $('installtxt').innerHTML=txt; $('installbtn').style.display=btn?'':'none'; $('installbar').style.display='flex'; }
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e;
+  showInstall('<b>Přidat na plochu</b> — appka pojede i offline.',true); });
+$('installbtn').onclick=async()=>{ if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; $('installbar').style.display='none'; } };
+$('installx').onclick=()=>{ $('installbar').style.display='none'; try{localStorage.setItem(LS.ibx,'1');}catch(e){} };
+(function(){ const iOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const safari=iOS && /safari/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+  if(iOS && safari) showInstall('<b>Přidat na plochu:</b> Sdílet ⬆︎ → „Přidat na plochu".',false);
+  else if(iOS) showInstall('Pro instalaci otevři tuto stránku v <b>Safari</b> → Sdílet → Přidat na plochu.',false);
+})();
+
+/* ---------- SW ---------- */
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+
+/* ---------- Init ---------- */
+(function initDates(){
+  const t=new Date(); const f=new Date(t); f.setDate(f.getDate()+7); const o=new Date(f); o.setDate(o.getDate()+2);
+  $('from').value=`${f.getFullYear()}-${pad(f.getMonth()+1)}-${pad(f.getDate())}`;
+  $('to').value=`${o.getFullYear()}-${pad(o.getMonth()+1)}-${pad(o.getDate())}`;
+})();
+loadState();
+refreshRate(true);
+render();
+</script>
+</body>
+</html>
